@@ -3,7 +3,7 @@
    Inspiré des designs de cam3.html et musique.html
    ================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
   --bg-desktop: #EFE6D5;
@@ -31,9 +31,9 @@
 }
 
 body {
-  font-family: 'Pixelify Sans', sans-serif;
-  -webkit-font-smoothing: none;
-  font-smooth: never;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-desktop);
   background-image: radial-gradient(#D5C9B3 1px, transparent 1px);
   background-size: 16px 16px;
@@ -230,9 +230,9 @@ input[type="text"] {
   background-color: var(--card-white);
   border: var(--border-width) solid var(--border-color);
   color: var(--text-dark);
-  font-family: 'Pixelify Sans', sans-serif;
-  font-size: 17px;
-  padding: 10px 12px;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  padding: 10px 14px;
   outline: none;
   box-shadow: inset 1px 1px 0px rgba(0, 0, 0, 0.08);
 }
@@ -269,8 +269,8 @@ input[type="text"]:focus {
    ================================================================= */
 
 .btn {
-  font-family: 'Pixelify Sans', sans-serif;
-  font-size: 17px;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
   font-weight: 700;
   padding: 10px 18px;
   border: var(--border-width) solid var(--border-color);
