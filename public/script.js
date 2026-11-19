@@ -323,9 +323,9 @@ socket.on('lobby-update', (data) => {
   // Bouton lancer
   if (isHost) {
     btnStartGame.style.display = 'block';
-    btnStartGame.disabled = players.length < 3;
-    if (players.length < 3) {
-      btnStartGame.title = 'Minimum 3 joueurs requis pour lancer';
+    btnStartGame.disabled = players.length < 2;
+    if (players.length < 2) {
+      btnStartGame.title = 'Minimum 2 joueurs requis pour lancer';
     } else {
       btnStartGame.title = 'Lancer la partie';
     }

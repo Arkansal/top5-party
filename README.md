@@ -35,7 +35,7 @@ Puis ouvrez votre navigateur sur :
 > Ouvrez plusieurs onglets ou fenêtres de navigation privée !  
 > 1. Un onglet crée une room et obtient un code à 6 lettres (ex: `ABCDEF`).  
 > 2. Les autres onglets saisissent un pseudo et ce code pour rejoindre.  
-> 3. L'hôte lance la partie dès qu'il y a au moins 3 joueurs.
+> 3. L'hôte lance la partie dès qu'il y a au moins 2 joueurs.
 
 ---
 
