@@ -335,6 +335,8 @@ socket.on('room-created', (data) => {
   saveSession(myToken, myRoomCode, myPseudo);
   roomCodeDisplay.textContent = myRoomCode;
   btnStartGame.style.display = 'block';
+  btnStartGame.disabled = true;
+  btnStartGame.textContent = 'En attente de joueurs (min 2)...';
   showScreen('lobby');
 });
 
@@ -342,6 +344,8 @@ socket.on('room-created', (data) => {
 socket.on('room-joined', (data) => {
   myRoomCode = data.roomCode;
   myToken = data.token;
+  isHost = false;
+  btnStartGame.style.display = 'none';
   saveSession(myToken, myRoomCode, myPseudo);
   roomCodeDisplay.textContent = myRoomCode;
   showScreen('lobby');
@@ -352,7 +356,7 @@ socket.on('session-restored', (data) => {
   myRoomCode = data.roomCode;
   myToken = data.token;
   myPseudo = data.pseudo;
-  isHost = data.isHost;
+  isHost = (data.isHost === true || (myToken && data.hostToken && myToken === data.hostToken));
   isCurrentPlayer = data.isCurrentPlayer;
   saveSession(myToken, myRoomCode, myPseudo);
 
@@ -362,6 +366,14 @@ socket.on('session-restored', (data) => {
   // Mettre à jour l'écran selon l'état actuel de la partie
   switch (data.state) {
     case 'lobby':
+      if (isHost) {
+        btnStartGame.style.display = 'block';
+        const canStart = (data.players && data.players.length >= 2);
+        btnStartGame.disabled = !canStart;
+        btnStartGame.textContent = canStart ? 'Lancer la partie' : 'En attente de joueurs (min 2)...';
+      } else {
+        btnStartGame.style.display = 'none';
+      }
       showScreen('lobby');
       break;
 
@@ -431,14 +443,19 @@ socket.on('restore-session-failed', (data) => {
 
 // --- Mise à jour du lobby ---
 socket.on('lobby-update', (data) => {
-  const { players, hostId, roomCode } = data;
+  const { players, hostId, hostToken, roomCode } = data;
 
   if (roomCode) {
     myRoomCode = roomCode;
     roomCodeDisplay.textContent = myRoomCode;
   }
 
-  isHost = (socket.id === hostId);
+  // Vérification infaillible du statut d'hôte (par token persistant ou par hostId)
+  if (myToken && hostToken) {
+    isHost = (myToken === hostToken);
+  } else if (hostId) {
+    isHost = (socket.id === hostId);
+  }
 
   if (currentScreen === 'home' || currentScreen === 'game-over') {
     showScreen('lobby');
@@ -454,14 +471,16 @@ socket.on('lobby-update', (data) => {
     avatar.style.backgroundColor = stringToColor(player.pseudo);
     avatar.textContent = getInitials(player.pseudo);
 
+    const isMe = (myToken && player.token) ? (myToken === player.token) : (player.id === socket.id);
     const name = document.createElement('span');
     name.className = 'player-name';
-    name.textContent = player.pseudo + (player.id === socket.id ? ' (toi)' : '');
+    name.textContent = player.pseudo + (isMe ? ' (toi)' : '');
 
     li.appendChild(avatar);
     li.appendChild(name);
 
-    if (player.id === hostId) {
+    const isPlayerHost = (hostToken && player.token) ? (player.token === hostToken) : (player.id === hostId);
+    if (isPlayerHost) {
       const badge = document.createElement('span');
       badge.className = 'player-host-badge';
       badge.textContent = 'HÔTE';
@@ -476,11 +495,14 @@ socket.on('lobby-update', (data) => {
 
   if (isHost) {
     btnStartGame.style.display = 'block';
-    btnStartGame.disabled = players.length < 2;
-    if (players.length < 2) {
+    const canStart = players.length >= 2;
+    btnStartGame.disabled = !canStart;
+    if (!canStart) {
       btnStartGame.title = 'Minimum 2 joueurs requis pour lancer';
+      btnStartGame.textContent = 'En attente de joueurs (min 2)...';
     } else {
       btnStartGame.title = 'Lancer la partie';
+      btnStartGame.textContent = 'Lancer la partie';
     }
   } else {
     btnStartGame.style.display = 'none';

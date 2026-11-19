@@ -107,8 +107,10 @@ function emitLobbyUpdate(code, room) {
   io.to(code).emit("lobby-update", {
     roomCode: code,
     hostId: room.host,
+    hostToken: room.hostToken,
     players: room.players.map((p) => ({
       id: p.id,
+      token: p.token,
       pseudo: p.pseudo,
       score: p.score,
       connected: p.connected,
@@ -291,6 +293,7 @@ io.on("connection", (socket) => {
       roomCode: code,
       pseudo: player.pseudo,
       isHost: (room.hostToken === player.token),
+      hostToken: room.hostToken,
       state: room.state,
       players: room.players.map((p) => ({
         id: p.id,
@@ -419,8 +422,10 @@ io.on("connection", (socket) => {
     }
 
     const { code, room } = found;
+    const player = room.players.find((p) => p.id === socket.id);
+    const isHost = (room.host === socket.id || (player && player.token === room.hostToken));
 
-    if (room.host !== socket.id) {
+    if (!isHost) {
       socket.emit("error", { message: "Seul l'hôte peut lancer la partie." });
       return;
     }
@@ -634,8 +639,10 @@ io.on("connection", (socket) => {
     }
 
     const { code, room } = found;
+    const player = room.players.find((p) => p.id === socket.id);
+    const isHost = (room.host === socket.id || (player && player.token === room.hostToken));
 
-    if (room.host !== socket.id) {
+    if (!isHost) {
       socket.emit("error", { message: "Seul l'hôte peut passer au tour suivant." });
       return;
     }
@@ -664,8 +671,10 @@ io.on("connection", (socket) => {
     }
 
     const { code, room } = found;
+    const player = room.players.find((p) => p.id === socket.id);
+    const isHost = (room.host === socket.id || (player && player.token === room.hostToken));
 
-    if (room.host !== socket.id) {
+    if (!isHost) {
       socket.emit("error", { message: "Seul l'hôte peut relancer une partie." });
       return;
     }
@@ -707,15 +716,7 @@ io.on("connection", (socket) => {
       `[Déconnexion temporaire] "${player.pseudo}" a quitté la salle ${code}. Session active pendant 30 min.`
     );
 
-    // Si c'est l'hôte, désigner temporairement un autre joueur connecté comme hôte actif
-    if (room.host === socket.id) {
-      const nextConnected = room.players.find((p) => p.connected);
-      if (nextConnected) {
-        room.host = nextConnected.id;
-        room.hostToken = nextConnected.token;
-      }
-    }
-
+    // L'hôte conserve son rôle via room.hostToken même en cas de rechargement/fermeture temporaire
     emitLobbyUpdate(code, room);
   });
 });
