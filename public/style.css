@@ -449,6 +449,12 @@ input[type="text"]:focus {
   box-shadow: 0px 0px 0px var(--border-color);
 }
 
+.custom-topic-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* =================================================================
    INDICATEUR D'ATTENTE & POINT CLIGNOTANT (Style cam3.html)
    ================================================================= */

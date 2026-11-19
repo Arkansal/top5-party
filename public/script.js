@@ -96,6 +96,9 @@ const btnStartGame = $('#btn-start-game');
 
 // Choix du sujet
 const topicCards = $('#topic-cards');
+const formCustomTopic = $('#form-custom-topic');
+const inputCustomTopic = $('#input-custom-topic');
+const btnCustomTopic = $('#btn-custom-topic');
 
 // Attente du sujet
 const waitingTopicPseudo = $('#waiting-topic-pseudo');
@@ -265,6 +268,33 @@ btnStartGame.addEventListener('click', () => {
   disableTemporarily(btnStartGame, 3000);
   socket.emit('start-game');
 });
+
+// =================================================================
+// GESTION DES ÉVÉNEMENTS UI — CHOIX DU SUJET
+// =================================================================
+
+if (formCustomTopic) {
+  formCustomTopic.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = inputCustomTopic.value.trim();
+    if (!text) {
+      showToast('Écris une phrase pour ton Top 5');
+      inputCustomTopic.focus();
+      return;
+    }
+    if (text.length < 3) {
+      showToast('Le sujet est trop court');
+      return;
+    }
+    // Désactiver les options après choix
+    topicCards.querySelectorAll('.topic-card').forEach((c) => {
+      c.style.pointerEvents = 'none';
+      c.style.opacity = '0.5';
+    });
+    btnCustomTopic.disabled = true;
+    socket.emit('select-topic', { topicId: null, topic: text });
+  });
+}
 
 // =================================================================
 // GESTION DES ÉVÉNEMENTS UI — REMPLIR LE TOP 5
@@ -659,6 +689,9 @@ socket.on('error', (data) => {
 
 function renderTopicCards(topics) {
   topicCards.innerHTML = '';
+  if (inputCustomTopic) inputCustomTopic.value = '';
+  if (btnCustomTopic) btnCustomTopic.disabled = false;
+
   topics.forEach((topic) => {
     const card = document.createElement('div');
     card.className = 'topic-card';
@@ -671,6 +704,7 @@ function renderTopicCards(topics) {
         c.style.pointerEvents = 'none';
         c.style.opacity = '0.5';
       });
+      if (btnCustomTopic) btnCustomTopic.disabled = true;
       card.style.opacity = '1';
       card.style.backgroundColor = 'var(--accent-pink)';
       socket.emit('select-topic', { topicId: id, topic: label });
