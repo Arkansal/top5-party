@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 // ─── Initialisation du serveur ───────────────────────────────────────────────
 
@@ -12,6 +13,9 @@ const io = new Server(server);
 
 // Servir les fichiers statiques depuis ./public
 app.use(express.static(path.join(__dirname, "public")));
+
+// Durée de validité des sessions / tokens : 30 minutes (1/2 heure)
+const TOKEN_TTL_MS = 30 * 60 * 1000;
 
 // Charger les sujets au démarrage
 let topics = [];
@@ -38,6 +42,13 @@ const rooms = {}; // Map de roomCode -> objet room
 // ─── Utilitaires ─────────────────────────────────────────────────────────────
 
 /**
+ * Génère un identifiant unique de session pour le joueur (token persistant).
+ */
+function generateToken() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+/**
  * Génère un code de salle aléatoire de 6 caractères alphanumériques majuscules.
  */
 function generateRoomCode() {
@@ -54,7 +65,6 @@ function generateRoomCode() {
 
 /**
  * Algorithme de Fisher-Yates pour mélanger un tableau.
- * Retourne une nouvelle copie mélangée.
  */
 function fisherYatesShuffle(array) {
   const shuffled = [...array];
@@ -67,7 +77,6 @@ function fisherYatesShuffle(array) {
 
 /**
  * Trouve la salle à laquelle appartient un socket.
- * Retourne { code, room } ou null si introuvable.
  */
 function findRoomBySocketId(socketId) {
   for (const [code, room] of Object.entries(rooms)) {
@@ -84,7 +93,6 @@ function findRoomBySocketId(socketId) {
 function pickRandomTopics(room, count = 5) {
   let available = topics.filter((t) => !room.usedTopicIds.includes(t.id));
   if (available.length < count) {
-    // Si on a épuisé les sujets, réinitialiser la liste d'utilisation
     room.usedTopicIds = [];
     available = [...topics];
   }
@@ -99,12 +107,17 @@ function emitLobbyUpdate(code, room) {
   io.to(code).emit("lobby-update", {
     roomCode: code,
     hostId: room.host,
-    players: room.players.map((p) => ({ id: p.id, pseudo: p.pseudo, score: p.score })),
+    players: room.players.map((p) => ({
+      id: p.id,
+      pseudo: p.pseudo,
+      score: p.score,
+      connected: p.connected,
+    })),
   });
 }
 
 /**
- * Démarre un nouveau round dans la salle.
+ * Démarre un nouveau tour dans la salle.
  */
 function startRound(code, room) {
   room.currentRound++;
@@ -116,11 +129,10 @@ function startRound(code, room) {
 
   // Choisir un joueur qui n'a pas encore joué dans cette rotation
   const availablePlayers = room.players.filter(
-    (p) => !room.playedPlayers.includes(p.id)
+    (p) => !room.playedTokens.includes(p.token)
   );
 
   if (availablePlayers.length === 0) {
-    // Fin de partie normale
     room.state = "game-over";
     io.to(code).emit("game-over", { scores: getFinalScores(room) });
     return;
@@ -128,23 +140,21 @@ function startRound(code, room) {
 
   const randomIndex = Math.floor(Math.random() * availablePlayers.length);
   const chosenPlayer = availablePlayers[randomIndex];
-  room.currentPlayerIndex = room.players.findIndex((p) => p.id === chosenPlayer.id);
-  room.playedPlayers.push(chosenPlayer.id);
+  room.currentPlayerIndex = room.players.findIndex((p) => p.token === chosenPlayer.token);
+  room.playedTokens.push(chosenPlayer.token);
 
-  // Choisir 5 sujets aléatoires
-  const roundTopics = pickRandomTopics(room, 5);
+  room.currentRoundTopics = pickRandomTopics(room, 5);
 
   console.log(
     `[Tour ${room.currentRound}/${room.totalRounds}] Salle ${code} — Joueur actif: "${chosenPlayer.pseudo}"`
   );
 
-  // Émettre le début du tour à toute la salle
   io.to(code).emit("new-round", {
     roundNumber: room.currentRound,
     totalRounds: room.totalRounds,
     currentPlayerId: chosenPlayer.id,
     currentPlayerPseudo: chosenPlayer.pseudo,
-    topics: roundTopics,
+    topics: room.currentRoundTopics,
   });
 }
 
@@ -167,8 +177,8 @@ function calculateAndEmitResults(code, room) {
 
   const results = [];
 
-  for (const [socketId, guess] of Object.entries(room.guesses)) {
-    const player = room.players.find((p) => p.id === socketId);
+  for (const [token, guess] of Object.entries(room.guesses)) {
+    const player = room.players.find((p) => p.token === token);
     if (!player) continue;
 
     let roundScore = 0;
@@ -181,7 +191,6 @@ function calculateAndEmitResults(code, room) {
       }
     }
 
-    // Si les 5 sont corrects : 5 + 1 point bonus = 6
     if (correctCount === 5) {
       roundScore = 6;
     }
@@ -202,19 +211,110 @@ function calculateAndEmitResults(code, room) {
     score: p.score,
   }));
 
-  io.to(code).emit("round-results", {
+  const resultsPayload = {
     results,
     correctOrder,
     topic: room.currentTopic ? room.currentTopic.label : "",
     currentPlayer: currentPlayer ? currentPlayer.pseudo : "???",
     scores,
-  });
+  };
+
+  room.lastResults = resultsPayload;
+  io.to(code).emit("round-results", resultsPayload);
 }
+
+// Nettoyage régulier des salles inactives depuis plus de 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, room] of Object.entries(rooms)) {
+    const allDisconnected = room.players.every((p) => !p.connected);
+    const expired = (now - room.lastActivity) > TOKEN_TTL_MS;
+    if (allDisconnected && expired) {
+      delete rooms[code];
+      console.log(`[Nettoyage] Salle expirée ${code} supprimée`);
+    }
+  }
+}, 60 * 1000);
 
 // ─── Gestion des connexions Socket.IO ────────────────────────────────────────
 
 io.on("connection", (socket) => {
-  console.log(`[Connexion] Nouveau client connecté: ${socket.id}`);
+  // ── Restauration de session (localStorage) ─────────────────────────────
+  socket.on("restore-session", (data) => {
+    const token = data && data.token;
+    const rawCode = data && data.roomCode;
+    const code = rawCode ? rawCode.toUpperCase().trim() : "";
+
+    if (!token || !code) {
+      socket.emit("restore-session-failed", { message: "Session invalide." });
+      return;
+    }
+
+    const room = rooms[code];
+    if (!room) {
+      socket.emit("restore-session-failed", { message: "Salle introuvable ou fermée." });
+      return;
+    }
+
+    const player = room.players.find((p) => p.token === token);
+    if (!player) {
+      socket.emit("restore-session-failed", { message: "Session expirée." });
+      return;
+    }
+
+    const now = Date.now();
+    if (now - player.lastSeen > TOKEN_TTL_MS) {
+      socket.emit("restore-session-failed", { message: "Session expirée (> 30 min)." });
+      return;
+    }
+
+    // Réattacher le nouveau socket au joueur
+    player.id = socket.id;
+    player.connected = true;
+    player.lastSeen = now;
+    room.lastActivity = now;
+
+    // Si c'est l'hôte, actualiser son socket ID
+    if (room.hostToken === player.token) {
+      room.host = socket.id;
+    }
+
+    socket.join(code);
+    console.log(`[Session restaurée] "${player.pseudo}" (${socket.id}) dans la salle ${code}`);
+
+    const currentPlayer = room.players[room.currentPlayerIndex];
+    const isCurrentPlayer = (currentPlayer && currentPlayer.token === player.token);
+
+    // Envoyer l'état complet du jeu au joueur qui revient
+    socket.emit("session-restored", {
+      token: player.token,
+      roomCode: code,
+      pseudo: player.pseudo,
+      isHost: (room.hostToken === player.token),
+      state: room.state,
+      players: room.players.map((p) => ({
+        id: p.id,
+        pseudo: p.pseudo,
+        score: p.score,
+        connected: p.connected,
+      })),
+      hostId: room.host,
+      currentRound: room.currentRound,
+      totalRounds: room.totalRounds,
+      isCurrentPlayer: !!isCurrentPlayer,
+      currentPlayerPseudo: currentPlayer ? currentPlayer.pseudo : null,
+      topics: isCurrentPlayer && room.state === "choosing-topic" ? room.currentRoundTopics : null,
+      currentTopic: room.currentTopic ? room.currentTopic.label : null,
+      shuffledItems: room.shuffledTop5,
+      alreadyGuessed: !!room.guesses[player.token],
+      guessesCount: Object.keys(room.guesses).length,
+      guessesTotal: room.players.filter((p) => p.token !== currentPlayer?.token).length,
+      lastResults: room.lastResults,
+      finalScores: room.state === "game-over" ? getFinalScores(room) : null,
+    });
+
+    emitLobbyUpdate(code, room);
+  });
 
   // ── Création de salle ──────────────────────────────────────────────────
   socket.on("create-room", (data) => {
@@ -225,27 +325,42 @@ io.on("connection", (socket) => {
     }
 
     const code = generateRoomCode();
+    const token = generateToken();
+    const now = Date.now();
+
     const room = {
+      hostToken: token,
       host: socket.id,
-      players: [{ id: socket.id, pseudo: pseudo.trim(), score: 0 }],
+      players: [{
+        id: socket.id,
+        token: token,
+        pseudo: pseudo.trim(),
+        score: 0,
+        connected: true,
+        lastSeen: now,
+      }],
       state: "lobby",
       currentRound: 0,
       totalRounds: 0,
       currentPlayerIndex: null,
+      currentRoundTopics: [],
       currentTopic: null,
       currentTop5: [],
       shuffledTop5: [],
       guesses: {},
-      playedPlayers: [],
+      playedTokens: [],
       usedTopicIds: [],
+      lastResults: null,
+      createdAt: now,
+      lastActivity: now,
     };
 
     rooms[code] = room;
     socket.join(code);
 
-    console.log(`[Salle créée] Code: ${code} par "${pseudo.trim()}" (${socket.id})`);
+    console.log(`[Salle créée] Code: ${code} par "${pseudo.trim()}" (token: ${token})`);
 
-    socket.emit("room-created", { roomCode: code });
+    socket.emit("room-created", { roomCode: code, token: token });
     emitLobbyUpdate(code, room);
   });
 
@@ -275,17 +390,23 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (room.players.some((p) => p.id === socket.id)) {
-      socket.emit("error", { message: "Vous êtes déjà dans cette salle." });
-      return;
-    }
+    const token = generateToken();
+    const now = Date.now();
 
-    room.players.push({ id: socket.id, pseudo: pseudo.trim(), score: 0 });
+    room.players.push({
+      id: socket.id,
+      token: token,
+      pseudo: pseudo.trim(),
+      score: 0,
+      connected: true,
+      lastSeen: now,
+    });
+    room.lastActivity = now;
     socket.join(code);
 
-    console.log(`[Joueur rejoint] "${pseudo.trim()}" (${socket.id}) → salle ${code}`);
+    console.log(`[Joueur rejoint] "${pseudo.trim()}" → salle ${code} (token: ${token})`);
 
-    socket.emit("room-joined", { roomCode: code });
+    socket.emit("room-joined", { roomCode: code, token: token });
     emitLobbyUpdate(code, room);
   });
 
@@ -316,8 +437,9 @@ io.on("connection", (socket) => {
 
     room.totalRounds = room.players.length;
     room.currentRound = 0;
-    room.playedPlayers = [];
+    room.playedTokens = [];
     room.usedTopicIds = [];
+    room.lastActivity = Date.now();
     room.players.forEach((p) => (p.score = 0));
 
     console.log(
@@ -367,16 +489,13 @@ io.on("connection", (socket) => {
     room.currentTopic = topic;
     room.usedTopicIds.push(topic.id);
     room.state = "filling-top5";
+    room.lastActivity = Date.now();
 
     console.log(`[Sujet choisi] Salle ${code} — "${topic.label}" par "${currentPlayer.pseudo}"`);
 
-    // Notifier toute la salle du sujet sélectionné
     io.to(code).emit("topic-selected", { topic: topic.label });
-
-    // Envoyer au joueur actif l'écran de remplissage
     socket.emit("fill-top5", { topic: topic.label });
 
-    // Informer les autres joueurs qu'ils doivent attendre
     socket.to(code).emit("waiting-for-top5", {
       currentPlayerPseudo: currentPlayer.pseudo,
       topic: topic.label,
@@ -417,8 +536,6 @@ io.on("connection", (socket) => {
     room.currentTop5 = answers.map((a) => a.trim());
     room.shuffledTop5 = fisherYatesShuffle(room.currentTop5);
 
-    // Si par hasard le shuffle donne l'ordre d'origine et qu'il y a des éléments distincts,
-    // on reshuffle une fois de plus
     if (
       room.shuffledTop5.join("|||") === room.currentTop5.join("|||") &&
       new Set(room.currentTop5).size > 1
@@ -428,16 +545,15 @@ io.on("connection", (socket) => {
 
     room.state = "guessing";
     room.guesses = {};
+    room.lastActivity = Date.now();
 
-    const guessersCount = room.players.filter((p) => p.id !== currentPlayer.id).length;
+    const guessersCount = room.players.filter((p) => p.token !== currentPlayer.token).length;
 
-    // Prévenir le joueur actif qu'on attend les devinettes
     socket.emit("waiting-guesses", {
       totalGuessers: guessersCount,
       count: 0,
     });
 
-    // Envoyer les données aux devineurs
     const guessData = {
       currentPlayerPseudo: currentPlayer.pseudo,
       currentPlayer: currentPlayer.pseudo,
@@ -447,12 +563,12 @@ io.on("connection", (socket) => {
     };
 
     room.players.forEach((p) => {
-      if (p.id !== currentPlayer.id) {
+      if (p.token !== currentPlayer.token && p.connected) {
         io.to(p.id).emit("guess-top5", guessData);
       }
     });
 
-    console.log(`[Top 5 soumis] Salle ${code} par "${currentPlayer.pseudo}", en attente de ${guessersCount} devineurs`);
+    console.log(`[Top 5 soumis] Salle ${code} par "${currentPlayer.pseudo}"`);
   });
 
   // ── Soumission d'une devinette ─────────────────────────────────────────
@@ -470,8 +586,11 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) return;
+
     const currentPlayer = room.players[room.currentPlayerIndex];
-    if (currentPlayer && currentPlayer.id === socket.id) {
+    if (currentPlayer && currentPlayer.token === player.token) {
       socket.emit("error", { message: "Le joueur actif ne peut pas deviner son propre Top 5." });
       return;
     }
@@ -485,18 +604,16 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Sauvegarder la devinette
-    room.guesses[socket.id] = orderedAnswers;
+    // Sauvegarder la devinette indexée par token
+    room.guesses[player.token] = orderedAnswers;
+    room.lastActivity = Date.now();
 
-    const guessersCount = room.players.filter((p) => p.id !== currentPlayer.id).length;
+    const guessersCount = room.players.filter((p) => p.token !== currentPlayer.token).length;
     const guessesReceived = Object.keys(room.guesses).length;
 
-    console.log(
-      `[Devinette reçue] Salle ${code} (${guessesReceived}/${guessersCount})`
-    );
+    console.log(`[Devinette reçue] Salle ${code} (${guessesReceived}/${guessersCount})`);
 
-    // Mettre à jour le compteur en temps réel pour le joueur actif
-    if (currentPlayer) {
+    if (currentPlayer && currentPlayer.connected) {
       io.to(currentPlayer.id).emit("guesses-update", {
         count: guessesReceived,
         total: guessersCount,
@@ -508,7 +625,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ── Passer au round suivant ────────────────────────────────────────────
+  // ── Passer au tour suivant ─────────────────────────────────────────────
   socket.on("next-round", () => {
     const found = findRoomBySocketId(socket.id);
     if (!found) {
@@ -527,6 +644,8 @@ io.on("connection", (socket) => {
       socket.emit("error", { message: "Impossible de passer au tour suivant maintenant." });
       return;
     }
+
+    room.lastActivity = Date.now();
 
     if (room.currentRound < room.totalRounds) {
       startRound(code, room);
@@ -559,8 +678,10 @@ io.on("connection", (socket) => {
     room.currentTop5 = [];
     room.shuffledTop5 = [];
     room.guesses = {};
-    room.playedPlayers = [];
+    room.playedTokens = [];
     room.usedTopicIds = [];
+    room.lastResults = null;
+    room.lastActivity = Date.now();
     room.players.forEach((p) => (p.score = 0));
 
     console.log(`[Rejouer] Salle ${code} réinitialisée au lobby`);
@@ -568,81 +689,34 @@ io.on("connection", (socket) => {
     emitLobbyUpdate(code, room);
   });
 
-  // ── Déconnexion ────────────────────────────────────────────────────────
+  // ── Déconnexion temporaire ─────────────────────────────────────────────
   socket.on("disconnect", () => {
     const found = findRoomBySocketId(socket.id);
     if (!found) return;
 
     const { code, room } = found;
-    const playerIndex = room.players.findIndex((p) => p.id === socket.id);
-    if (playerIndex === -1) return;
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) return;
 
-    const disconnectedPlayer = room.players[playerIndex];
+    const now = Date.now();
+    player.connected = false;
+    player.lastSeen = now;
+    room.lastActivity = now;
+
     console.log(
-      `[Déconnexion] "${disconnectedPlayer.pseudo}" (${socket.id}) a quitté la salle ${code}`
+      `[Déconnexion temporaire] "${player.pseudo}" a quitté la salle ${code}. Session active pendant 30 min.`
     );
 
-    room.players.splice(playerIndex, 1);
-
-    if (room.players.length === 0) {
-      delete rooms[code];
-      console.log(`[Salle supprimée] ${code} (plus aucun joueur)`);
-      return;
-    }
-
-    // Réassigner l'hôte si c'était l'hôte
+    // Si c'est l'hôte, désigner temporairement un autre joueur connecté comme hôte actif
     if (room.host === socket.id) {
-      room.host = room.players[0].id;
-      console.log(`[Nouvel hôte] "${room.players[0].pseudo}" dans la salle ${code}`);
-    }
-
-    if (room.state === "lobby") {
-      emitLobbyUpdate(code, room);
-    } else {
-      // En cours de partie
-      room.totalRounds = Math.max(room.currentRound, room.players.length);
-      room.playedPlayers = room.playedPlayers.filter((id) => id !== socket.id);
-
-      // Si le joueur actif part
-      if (room.currentPlayerIndex !== null) {
-        const wasCurrentPlayer =
-          room.currentPlayerIndex === playerIndex ||
-          room.currentPlayerIndex >= room.players.length;
-
-        if (wasCurrentPlayer) {
-          if (room.currentRound < room.totalRounds && room.players.length >= 2) {
-            startRound(code, room);
-          } else {
-            room.state = "game-over";
-            io.to(code).emit("game-over", { scores: getFinalScores(room) });
-          }
-          return;
-        }
-
-        if (playerIndex < room.currentPlayerIndex) {
-          room.currentPlayerIndex--;
-        }
-      }
-
-      // Si on était en train de deviner, vérifier si on a toutes les réponses restantes
-      if (room.state === "guessing") {
-        delete room.guesses[socket.id];
-        const currentPlayer = room.players[room.currentPlayerIndex];
-        if (currentPlayer) {
-          const guessersCount = room.players.filter((p) => p.id !== currentPlayer.id).length;
-          const guessesReceived = Object.keys(room.guesses).length;
-
-          io.to(currentPlayer.id).emit("guesses-update", {
-            count: guessesReceived,
-            total: guessersCount,
-          });
-
-          if (guessesReceived >= guessersCount && guessersCount > 0) {
-            calculateAndEmitResults(code, room);
-          }
-        }
+      const nextConnected = room.players.find((p) => p.connected);
+      if (nextConnected) {
+        room.host = nextConnected.id;
+        room.hostToken = nextConnected.token;
       }
     }
+
+    emitLobbyUpdate(code, room);
   });
 });
 

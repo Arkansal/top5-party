@@ -1,10 +1,69 @@
 /* =================================================================
    TOP 5 PARTY — Script client Socket.IO
-   Style Rétro Minimaliste (aucun émoji)
+   Style Rétro Minimaliste + Gestion de session (localStorage 30 min)
    ================================================================= */
 
 // --- Connexion au serveur Socket.IO ---
 const socket = io();
+
+// =================================================================
+// GESTION DU STOCKAGE LOCAL (PERSISTANCE DE SESSION)
+// =================================================================
+const SESSION_KEY = 'top5_party_session';
+const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+function saveSession(token, roomCode, pseudo) {
+  try {
+    const data = {
+      token,
+      roomCode: (roomCode || '').toUpperCase().trim(),
+      pseudo: (pseudo || '').trim(),
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  } catch (err) {
+    console.warn('Impossible de sauvegarder la session:', err);
+  }
+}
+
+function clearSession() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (err) {
+    console.warn('Impossible de supprimer la session:', err);
+  }
+}
+
+function getSavedSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || !data.token || !data.roomCode) {
+      clearSession();
+      return null;
+    }
+    // Vérifier la péremption (30 minutes max)
+    if (Date.now() - data.timestamp > SESSION_TTL_MS) {
+      clearSession();
+      return null;
+    }
+    return data;
+  } catch (err) {
+    clearSession();
+    return null;
+  }
+}
+
+function tryRestoreSession() {
+  const session = getSavedSession();
+  if (session && session.token && session.roomCode) {
+    socket.emit('restore-session', {
+      token: session.token,
+      roomCode: session.roomCode,
+    });
+  }
+}
 
 // =================================================================
 // VARIABLES D'ÉTAT
@@ -12,6 +71,7 @@ const socket = io();
 let currentScreen = 'home';
 let myPseudo = '';
 let myRoomCode = '';
+let myToken = '';
 let isHost = false;
 let isCurrentPlayer = false;
 
@@ -74,6 +134,13 @@ const btnQuit = $('#btn-quit');
 
 // Toast
 const toastEl = $('#toast');
+
+// =================================================================
+// INITIALISATION & RESTAURATION
+// =================================================================
+socket.on('connect', () => {
+  tryRestoreSession();
+});
 
 // =================================================================
 // FONCTIONS UTILITAIRES
@@ -252,6 +319,7 @@ btnPlayAgain.addEventListener('click', () => {
 });
 
 btnQuit.addEventListener('click', () => {
+  clearSession();
   window.location.reload();
 });
 
@@ -259,20 +327,109 @@ btnQuit.addEventListener('click', () => {
 // ÉVÉNEMENTS SOCKET.IO — RÉCEPTION
 // =================================================================
 
+// --- Salle créée ---
 socket.on('room-created', (data) => {
   myRoomCode = data.roomCode;
+  myToken = data.token;
   isHost = true;
+  saveSession(myToken, myRoomCode, myPseudo);
   roomCodeDisplay.textContent = myRoomCode;
   btnStartGame.style.display = 'block';
   showScreen('lobby');
 });
 
+// --- Salle rejointe ---
 socket.on('room-joined', (data) => {
   myRoomCode = data.roomCode;
+  myToken = data.token;
+  saveSession(myToken, myRoomCode, myPseudo);
   roomCodeDisplay.textContent = myRoomCode;
   showScreen('lobby');
 });
 
+// --- Session restaurée après réouverture de page ---
+socket.on('session-restored', (data) => {
+  myRoomCode = data.roomCode;
+  myToken = data.token;
+  myPseudo = data.pseudo;
+  isHost = data.isHost;
+  isCurrentPlayer = data.isCurrentPlayer;
+  saveSession(myToken, myRoomCode, myPseudo);
+
+  roomCodeDisplay.textContent = myRoomCode;
+  showToast('Partie retrouvée et restaurée');
+
+  // Mettre à jour l'écran selon l'état actuel de la partie
+  switch (data.state) {
+    case 'lobby':
+      showScreen('lobby');
+      break;
+
+    case 'choosing-topic':
+      if (data.isCurrentPlayer && data.topics) {
+        renderTopicCards(data.topics);
+        showScreen('choosing-topic');
+      } else {
+        waitingTopicPseudo.textContent = data.currentPlayerPseudo || 'Un joueur';
+        showScreen('waiting-topic');
+      }
+      break;
+
+    case 'filling-top5':
+      if (data.isCurrentPlayer) {
+        fillTopicDisplay.textContent = data.currentTopic || 'Sujet';
+        btnSubmitTop5.disabled = false;
+        showScreen('fill-top5');
+      } else {
+        waitingTop5Pseudo.textContent = data.currentPlayerPseudo || 'Le joueur';
+        waitingTop5Topic.textContent = data.currentTopic || '';
+        showScreen('waiting-top5');
+      }
+      break;
+
+    case 'guessing':
+      if (data.isCurrentPlayer) {
+        guessesCount.textContent = data.guessesCount || 0;
+        guessesTotal.textContent = data.guessesTotal || 0;
+        showScreen('waiting-guesses');
+      } else {
+        guessPseudo.textContent = data.currentPlayerPseudo || '???';
+        guessTopicDisplay.textContent = data.currentTopic || '';
+        renderDragItems(data.shuffledItems || []);
+        if (data.alreadyGuessed) {
+          btnSubmitGuess.disabled = true;
+          btnSubmitGuess.textContent = 'Ordre envoyé (en attente)';
+        } else {
+          btnSubmitGuess.disabled = false;
+          btnSubmitGuess.textContent = "Valider l'ordre";
+        }
+        showScreen('guess-top5');
+      }
+      break;
+
+    case 'round-results':
+      if (data.lastResults) {
+        displayRoundResults(data.lastResults);
+      }
+      break;
+
+    case 'game-over':
+      if (data.finalScores) {
+        displayGameOver(data.finalScores);
+      }
+      break;
+  }
+});
+
+socket.on('restore-session-failed', (data) => {
+  clearSession();
+  if (data && data.message) {
+    showToast(data.message);
+  }
+  showScreen('home');
+});
+
+// --- Mise à jour du lobby ---
 socket.on('lobby-update', (data) => {
   const { players, hostId, roomCode } = data;
 
@@ -332,7 +489,7 @@ socket.on('lobby-update', (data) => {
 
 // --- Nouveau tour ---
 socket.on('new-round', (data) => {
-  const { currentPlayerId, currentPlayerPseudo, topics, roundNumber, totalRounds } = data;
+  const { currentPlayerId, currentPlayerPseudo, topics } = data;
   isCurrentPlayer = (currentPlayerId === socket.id);
 
   if (isCurrentPlayer) {
@@ -394,11 +551,10 @@ socket.on('guesses-update', (data) => {
 });
 
 // --- Résultats de la manche ---
-socket.on('round-results', (data) => {
+function displayRoundResults(data) {
   const { topic, correctOrder, results, scores } = data;
   resultsTopic.textContent = topic;
 
-  // Ordre correct
   correctOrderList.innerHTML = '';
   correctOrder.forEach((item) => {
     const li = document.createElement('li');
@@ -406,7 +562,6 @@ socket.on('round-results', (data) => {
     correctOrderList.appendChild(li);
   });
 
-  // Résultats détaillés
   playerResults.innerHTML = '';
   results.forEach((r) => {
     const card = document.createElement('div');
@@ -439,26 +594,30 @@ socket.on('round-results', (data) => {
     playerResults.appendChild(card);
   });
 
-  // Tableau des scores
   renderLeaderboard(leaderboard, scores);
 
-  // Bouton suivant (hôte)
   btnNextRound.style.display = isHost ? 'block' : 'none';
   btnNextRound.disabled = false;
   showScreen('round-results');
+}
+
+socket.on('round-results', (data) => {
+  displayRoundResults(data);
 });
 
 // --- Fin de partie ---
-socket.on('game-over', (data) => {
-  const scores = (data && data.scores) || data || [];
+function displayGameOver(scores) {
   const sorted = [...scores].sort((a, b) => b.score - a.score);
-
   renderPodium(sorted);
   renderLeaderboard(finalLeaderboard, scores);
-
   btnPlayAgain.style.display = isHost ? 'inline-block' : 'none';
   btnPlayAgain.disabled = false;
   showScreen('game-over');
+}
+
+socket.on('game-over', (data) => {
+  const scores = (data && data.scores) || data || [];
+  displayGameOver(scores);
 });
 
 // --- Erreur ---
