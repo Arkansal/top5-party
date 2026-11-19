@@ -452,28 +452,32 @@ btnSubmitGuess.addEventListener('click', () => {
 });
 
 // =================================================================
-// GESTION DES ÉVÉNEMENTS UI — RÉSULTATS / FIN
+// GESTION DES ÉVÉNEMENTS UI — RÉSULTATS / FIN & QUITTER
 // =================================================================
 
-function quitGame(showConfirm = false) {
+function quitAndClearStorage(showConfirm = false) {
   if (showConfirm && currentScreen !== 'home' && currentScreen !== 'lobby' && currentScreen !== 'game-over') {
-    if (!confirm('Veux-tu vraiment quitter la partie en cours ?')) {
+    if (!confirm('Veux-tu vraiment quitter la partie et réinitialiser la session ?')) {
       return;
     }
   }
 
-  socket.emit('leave-room');
-  clearSession();
+  try {
+    socket.emit('leave-room');
+  } catch (e) {}
 
-  myPseudo = '';
-  myRoomCode = '';
-  myToken = '';
-  isHost = false;
-  isCurrentPlayer = false;
+  try {
+    localStorage.clear();
+  } catch (e) {
+    console.warn('Erreur clear localStorage:', e);
+  }
 
-  if (inputRoomCode) inputRoomCode.value = '';
-  showToast('Tu as quitté la partie');
-  showScreen('home');
+  try {
+    sessionStorage.clear();
+  } catch (e) {}
+
+  // Forcer le rechargement immédiat pour nettoyer complètement l'état
+  window.location.href = window.location.origin + window.location.pathname;
 }
 
 btnNextRound.addEventListener('click', () => {
@@ -482,11 +486,11 @@ btnNextRound.addEventListener('click', () => {
 });
 
 if (btnQuitResults) {
-  btnQuitResults.addEventListener('click', () => quitGame(true));
+  btnQuitResults.addEventListener('click', () => quitAndClearStorage(true));
 }
 
 if (btnLeaveLobby) {
-  btnLeaveLobby.addEventListener('click', () => quitGame(false));
+  btnLeaveLobby.addEventListener('click', () => quitAndClearStorage(false));
 }
 
 btnPlayAgain.addEventListener('click', () => {
@@ -495,17 +499,31 @@ btnPlayAgain.addEventListener('click', () => {
 });
 
 btnQuit.addEventListener('click', () => {
-  quitGame(false);
+  quitAndClearStorage(false);
 });
+
+// Bouton réinitialiser sur l'écran d'accueil
+const btnClearHome = $('#btn-clear-storage-home');
+if (btnClearHome) {
+  btnClearHome.addEventListener('click', () => {
+    quitAndClearStorage(false);
+  });
+}
+
+// Bouton global persistant pour vider le localStorage
+const btnGlobalClear = $('#btn-global-clear-storage');
+if (btnGlobalClear) {
+  btnGlobalClear.addEventListener('click', () => {
+    quitAndClearStorage(currentScreen !== 'home' && currentScreen !== 'lobby' && currentScreen !== 'game-over');
+  });
+}
 
 // Bouton 'X' (fermer) de chaque fenêtre
 $$('.btn-close').forEach((btn) => {
-  btn.setAttribute('title', 'Quitter');
+  btn.setAttribute('title', 'Quitter et effacer la session');
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (currentScreen !== 'home') {
-      quitGame(currentScreen !== 'lobby' && currentScreen !== 'game-over');
-    }
+    quitAndClearStorage(currentScreen !== 'home' && currentScreen !== 'lobby' && currentScreen !== 'game-over');
   });
 });
 

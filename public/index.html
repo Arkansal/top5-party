@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <!-- Feuille de styles -->
-  <link rel="stylesheet" href="/style.css?v=3" />
+  <link rel="stylesheet" href="/style.css?v=4" />
 </head>
 <body>
 
@@ -64,6 +64,12 @@
           <input type="text" id="input-room-code" placeholder="EX : ABCDEF" maxlength="6" autocomplete="off" />
         </div>
         <button id="btn-join-room" class="btn btn-secondary btn-block">Rejoindre</button>
+
+        <div class="home-reset-wrapper">
+          <button type="button" id="btn-clear-storage-home" class="btn-link-reset" title="Vider le stockage local et réinitialiser">
+            Effacer la session / Vider le cache
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -377,11 +383,18 @@
         <!-- Actions -->
         <div class="actions-row">
           <button id="btn-play-again" class="btn btn-primary">Rejouer</button>
-          <button id="btn-quit" class="btn btn-secondary">Quitter</button>
+          <button id="btn-quit" class="btn btn-secondary">Quitter la partie</button>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Bouton persistant : Vider le cache / Quitter -->
+  <div class="global-reset-container">
+    <button type="button" id="btn-global-clear-storage" class="btn-global-reset" title="Effacer toutes les données locales et réinitialiser">
+      Effacer la session (Clear LocalStorage)
+    </button>
+  </div>
 
   <!-- ============================================================= -->
   <!-- TOAST / NOTIFICATION                                          -->
@@ -391,6 +404,6 @@
   <!-- Socket.IO client -->
   <script src="/socket.io/socket.io.js"></script>
   <!-- Script principal du jeu -->
-  <script src="/script.js?v=3"></script>
+  <script src="/script.js?v=4"></script>
 </body>
 </html>
