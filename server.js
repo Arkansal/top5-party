@@ -108,6 +108,7 @@ function emitLobbyUpdate(code, room) {
     roomCode: code,
     hostId: room.host,
     hostToken: room.hostToken,
+    totalRounds: room.totalRounds || 5,
     players: room.players.map((p) => ({
       id: p.id,
       token: p.token,
@@ -122,6 +123,12 @@ function emitLobbyUpdate(code, room) {
  * Démarre un nouveau tour dans la salle.
  */
 function startRound(code, room) {
+  if (room.currentRound >= room.totalRounds) {
+    room.state = "game-over";
+    io.to(code).emit("game-over", { scores: getFinalScores(room) });
+    return;
+  }
+
   room.currentRound++;
   room.state = "choosing-topic";
   room.currentTopic = null;
@@ -130,9 +137,16 @@ function startRound(code, room) {
   room.guesses = {};
 
   // Choisir un joueur qui n'a pas encore joué dans cette rotation
-  const availablePlayers = room.players.filter(
+  let availablePlayers = room.players.filter(
     (p) => !room.playedTokens.includes(p.token)
   );
+
+  // Si tous les joueurs ont déjà joué dans cette rotation, on démarre un nouveau cycle
+  if (availablePlayers.length === 0) {
+    room.playedTokens = [];
+    const connectedPlayers = room.players.filter((p) => p.connected);
+    availablePlayers = connectedPlayers.length > 0 ? connectedPlayers : [...room.players];
+  }
 
   if (availablePlayers.length === 0) {
     room.state = "game-over";
@@ -140,8 +154,22 @@ function startRound(code, room) {
     return;
   }
 
-  const randomIndex = Math.floor(Math.random() * availablePlayers.length);
-  const chosenPlayer = availablePlayers[randomIndex];
+  // Éviter de sélectionner deux fois consécutivement le même joueur s'il y a d'autres options
+  let candidatePlayers = availablePlayers;
+  if (
+    availablePlayers.length > 1 &&
+    room.currentPlayerIndex !== null &&
+    room.players[room.currentPlayerIndex]
+  ) {
+    const lastPlayedToken = room.players[room.currentPlayerIndex].token;
+    const filtered = availablePlayers.filter((p) => p.token !== lastPlayedToken);
+    if (filtered.length > 0) {
+      candidatePlayers = filtered;
+    }
+  }
+
+  const randomIndex = Math.floor(Math.random() * candidatePlayers.length);
+  const chosenPlayer = candidatePlayers[randomIndex];
   room.currentPlayerIndex = room.players.findIndex((p) => p.token === chosenPlayer.token);
   room.playedTokens.push(chosenPlayer.token);
 
@@ -327,6 +355,14 @@ io.on("connection", (socket) => {
       return;
     }
 
+    let totalRounds = 5;
+    if (typeof data === "object" && data.totalRounds !== undefined) {
+      const parsed = parseInt(data.totalRounds, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 50) {
+        totalRounds = parsed;
+      }
+    }
+
     const code = generateRoomCode();
     const token = generateToken();
     const now = Date.now();
@@ -344,7 +380,7 @@ io.on("connection", (socket) => {
       }],
       state: "lobby",
       currentRound: 0,
-      totalRounds: 0,
+      totalRounds: totalRounds,
       currentPlayerIndex: null,
       currentRoundTopics: [],
       currentTopic: null,
@@ -361,9 +397,9 @@ io.on("connection", (socket) => {
     rooms[code] = room;
     socket.join(code);
 
-    console.log(`[Salle créée] Code: ${code} par "${pseudo.trim()}" (token: ${token})`);
+    console.log(`[Salle créée] Code: ${code} par "${pseudo.trim()}" (${totalRounds} tours, token: ${token})`);
 
-    socket.emit("room-created", { roomCode: code, token: token });
+    socket.emit("room-created", { roomCode: code, token: token, totalRounds: totalRounds });
     emitLobbyUpdate(code, room);
   });
 
@@ -414,7 +450,7 @@ io.on("connection", (socket) => {
   });
 
   // ── Lancer la partie ───────────────────────────────────────────────────
-  socket.on("start-game", () => {
+  socket.on("start-game", (data) => {
     const found = findRoomBySocketId(socket.id);
     if (!found) {
       socket.emit("error", { message: "Vous n'êtes dans aucune salle." });
@@ -440,7 +476,17 @@ io.on("connection", (socket) => {
       return;
     }
 
-    room.totalRounds = room.players.length;
+    if (data && data.totalRounds !== undefined) {
+      const parsed = parseInt(data.totalRounds, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 50) {
+        room.totalRounds = parsed;
+      }
+    }
+
+    if (!room.totalRounds || room.totalRounds < 1) {
+      room.totalRounds = 5;
+    }
+
     room.currentRound = 0;
     room.playedTokens = [];
     room.usedTopicIds = [];
@@ -452,6 +498,37 @@ io.on("connection", (socket) => {
     );
 
     startRound(code, room);
+  });
+
+  // ── Mise à jour du nombre de tours (lobby) ──────────────────────────────
+  socket.on("update-rounds", (data) => {
+    const found = findRoomBySocketId(socket.id);
+    if (!found) return;
+
+    const { code, room } = found;
+    const player = room.players.find((p) => p.id === socket.id);
+    const isHost = (room.host === socket.id || (player && player.token === room.hostToken));
+
+    if (!isHost) {
+      socket.emit("error", { message: "Seul l'hôte peut modifier le nombre de tours." });
+      return;
+    }
+
+    if (room.state !== "lobby") {
+      socket.emit("error", { message: "La partie est déjà en cours." });
+      return;
+    }
+
+    const rounds = parseInt(data && data.totalRounds, 10);
+    if (isNaN(rounds) || rounds < 1 || rounds > 50) {
+      socket.emit("error", { message: "Le nombre de tours doit être entre 1 et 50." });
+      return;
+    }
+
+    room.totalRounds = rounds;
+    room.lastActivity = Date.now();
+    console.log(`[Configuration] Salle ${code} — Nombre de tours réglé sur ${rounds}`);
+    emitLobbyUpdate(code, room);
   });
 
   // ── Sélection du sujet ─────────────────────────────────────────────────
@@ -681,7 +758,7 @@ io.on("connection", (socket) => {
 
     room.state = "lobby";
     room.currentRound = 0;
-    room.totalRounds = 0;
+    room.totalRounds = room.totalRounds || 5;
     room.currentPlayerIndex = null;
     room.currentTopic = null;
     room.currentTop5 = [];

@@ -208,6 +208,22 @@ body {
   word-break: break-word;
 }
 
+.round-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--accent-pink);
+  color: var(--text-dark);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
 /* =================================================================
    FORMULAIRES & INPUTS
    ================================================================= */
@@ -239,6 +255,96 @@ input[type="text"] {
 
 input[type="text"]:focus {
   background-color: #FFFDF8;
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+
+.rounds-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.btn-stepper {
+  width: 44px;
+  height: 44px;
+  background-color: var(--card-white);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: var(--shadow-btn);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.btn-stepper:hover {
+  background-color: #F8F0E3;
+}
+
+.btn-stepper:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px var(--border-color);
+}
+
+.rounds-input {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  height: 44px;
+  background-color: var(--card-white);
+  border: var(--border-width) solid var(--border-color);
+  color: var(--text-dark);
+  outline: none;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  box-shadow: inset 1px 1px 0px rgba(0, 0, 0, 0.08);
+  -moz-appearance: textfield;
+}
+
+.rounds-input::-webkit-outer-spin-button,
+.rounds-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.rounds-input:focus {
+  background-color: #FFFDF8;
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+
+.rounds-presets {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-preset {
+  flex: 1;
+  background-color: var(--card-white);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 1px 1px 0px var(--border-color);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 4px;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  color: var(--text-dark);
+  transition: all 0.1s ease;
+}
+
+.btn-preset:hover {
+  background-color: #FFFDF8;
+}
+
+.btn-preset.active {
+  background-color: var(--accent-pink);
   box-shadow: 2px 2px 0px var(--border-color);
 }
 
@@ -345,6 +451,48 @@ input[type="text"]:focus {
   justify-content: space-between;
   margin-bottom: 20px;
   box-shadow: 2px 2px 0px var(--border-color);
+}
+
+.lobby-rounds-card {
+  background-color: var(--card-white);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.lobby-rounds-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rounds-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+}
+
+.rounds-card-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.lobby-rounds-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lobby-rounds-controls .btn-stepper {
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
 }
 
 .room-code-label {

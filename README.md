@@ -9,7 +9,7 @@ Les autres joueurs reçoivent ses réponses dans le désordre et doivent les **r
 ### 🏆 Système de points
 - **+1 point** par élément placé à la bonne position
 - **+6 points** si tout le Top 5 est parfaitement trouvé (5 bonnes réponses + 1 point bonus)
-- Le nombre de tours correspond au nombre de joueurs dans la room (chacun passe une fois)
+- **Nombre de tours personnalisable** lors de la création de la room ou directement dans le salon d'attente (3, 5, 10 ou valeur sur-mesure) avec rotation équilibrée entre les joueurs
 - Affichage du podium et du classement final à la fin de la partie !
 
 ---

@@ -36,6 +36,21 @@
           <input type="text" id="input-pseudo" placeholder="Entre ton pseudo..." maxlength="20" autocomplete="off" />
         </div>
 
+        <!-- Paramètre : Nombre de tours pour la partie -->
+        <div class="form-group">
+          <label for="input-rounds">NOMBRE DE TOURS</label>
+          <div class="rounds-stepper">
+            <button type="button" id="btn-rounds-minus" class="btn-stepper" aria-label="Moins de tours">-</button>
+            <input type="number" id="input-rounds" class="rounds-input" value="5" min="1" max="30" />
+            <button type="button" id="btn-rounds-plus" class="btn-stepper" aria-label="Plus de tours">+</button>
+          </div>
+          <div class="rounds-presets">
+            <button type="button" class="btn-preset" data-rounds="3">3 tours</button>
+            <button type="button" class="btn-preset active" data-rounds="5">5 tours</button>
+            <button type="button" class="btn-preset" data-rounds="10">10 tours</button>
+          </div>
+        </div>
+
         <!-- Créer une room -->
         <button id="btn-create-room" class="btn btn-primary btn-block">Créer une room</button>
 
@@ -75,6 +90,18 @@
           <button id="btn-copy-code" class="btn btn-small btn-secondary">Copier</button>
         </div>
 
+        <!-- Configuration du nombre de tours dans le lobby -->
+        <div class="lobby-rounds-card">
+          <div class="lobby-rounds-info">
+            <span class="rounds-card-label">NOMBRE DE TOURS</span>
+            <span id="lobby-rounds-display" class="rounds-card-value">5 tours</span>
+          </div>
+          <div id="lobby-rounds-controls" class="lobby-rounds-controls" style="display:none;">
+            <button type="button" id="btn-lobby-rounds-minus" class="btn-stepper" title="Moins de tours">-</button>
+            <button type="button" id="btn-lobby-rounds-plus" class="btn-stepper" title="Plus de tours">+</button>
+          </div>
+        </div>
+
         <!-- Liste des joueurs -->
         <div class="player-count"><span id="player-count-text">0/10 joueurs</span></div>
         <ul id="player-list" class="player-list"></ul>
@@ -101,6 +128,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <h2 class="screen-title">C'est ton tour</h2>
         <p class="screen-subtitle">Choisis un sujet de Top 5 :</p>
         <div id="topic-cards" class="topic-grid"></div>
@@ -129,6 +157,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <div class="waiting-box">
           <div class="rec-dot"></div>
           <p class="waiting-text"><span id="waiting-topic-pseudo">???</span> choisit un sujet...</p>
@@ -151,6 +180,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <h2 class="screen-title">Ton Top 5</h2>
         <div id="fill-topic-display" class="topic-badge">Sujet</div>
         <form id="form-top5" class="top5-form">
@@ -194,6 +224,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <div class="waiting-box">
           <div id="waiting-top5-topic" class="topic-badge">Sujet</div>
           <div class="rec-dot"></div>
@@ -217,6 +248,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <h2 class="screen-title">Remets dans l'ordre</h2>
         <p class="screen-subtitle">Top 5 de <span id="guess-pseudo">???</span></p>
         <div id="guess-topic-display" class="topic-badge">Sujet</div>
@@ -241,6 +273,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <div class="waiting-box">
           <p class="waiting-text">Les autres joueurs devinent ton classement...</p>
           <div class="progress-indicator">
@@ -266,6 +299,7 @@
         </div>
       </div>
       <div class="window-body">
+        <div class="round-badge"><span class="round-badge-text">Tour 1 / 5</span></div>
         <h2 class="screen-title">Résultats du tour</h2>
         <div id="results-topic" class="topic-badge">Sujet</div>
 

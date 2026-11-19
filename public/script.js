@@ -74,6 +74,9 @@ let myRoomCode = '';
 let myToken = '';
 let isHost = false;
 let isCurrentPlayer = false;
+let selectedRounds = 5;
+let currentRoundNumber = 1;
+let currentTotalRounds = 5;
 
 // =================================================================
 // RÉFÉRENCES DOM
@@ -86,6 +89,10 @@ const inputPseudo = $('#input-pseudo');
 const inputRoomCode = $('#input-room-code');
 const btnCreateRoom = $('#btn-create-room');
 const btnJoinRoom = $('#btn-join-room');
+const inputRounds = $('#input-rounds');
+const btnRoundsMinus = $('#btn-rounds-minus');
+const btnRoundsPlus = $('#btn-rounds-plus');
+const presetButtons = $$('.btn-preset');
 
 // Lobby
 const roomCodeDisplay = $('#room-code-display');
@@ -93,6 +100,10 @@ const btnCopyCode = $('#btn-copy-code');
 const playerCountText = $('#player-count-text');
 const playerList = $('#player-list');
 const btnStartGame = $('#btn-start-game');
+const lobbyRoundsDisplay = $('#lobby-rounds-display');
+const lobbyRoundsControls = $('#lobby-rounds-controls');
+const btnLobbyRoundsMinus = $('#btn-lobby-rounds-minus');
+const btnLobbyRoundsPlus = $('#btn-lobby-rounds-plus');
 
 // Choix du sujet
 const topicCards = $('#topic-cards');
@@ -204,6 +215,50 @@ function disableTemporarily(btn, ms = 1500) {
   }, ms);
 }
 
+function setRounds(value) {
+  let val = parseInt(value, 10);
+  if (isNaN(val) || val < 1) val = 1;
+  if (val > 30) val = 30;
+  selectedRounds = val;
+  currentTotalRounds = val;
+  if (inputRounds) inputRounds.value = val;
+  presetButtons.forEach((btn) => {
+    btn.classList.toggle('active', parseInt(btn.dataset.rounds, 10) === val);
+  });
+}
+
+function updateRoundDisplays(current, total) {
+  const roundCurrent = current || currentRoundNumber;
+  const roundTotal = total || currentTotalRounds;
+  $$('.round-badge-text').forEach((el) => {
+    el.textContent = `Tour ${roundCurrent} / ${roundTotal}`;
+  });
+}
+
+function updateLobbyRoundsDisplay() {
+  if (lobbyRoundsDisplay) {
+    lobbyRoundsDisplay.textContent = `${currentTotalRounds} tour${currentTotalRounds > 1 ? 's' : ''}`;
+  }
+  if (lobbyRoundsControls) {
+    lobbyRoundsControls.style.display = isHost ? 'flex' : 'none';
+  }
+}
+
+// Initialisation des boutons de sélection de tours
+if (btnRoundsMinus) {
+  btnRoundsMinus.addEventListener('click', () => setRounds(selectedRounds - 1));
+}
+if (btnRoundsPlus) {
+  btnRoundsPlus.addEventListener('click', () => setRounds(selectedRounds + 1));
+}
+if (inputRounds) {
+  inputRounds.addEventListener('input', () => setRounds(inputRounds.value));
+  inputRounds.addEventListener('change', () => setRounds(inputRounds.value));
+}
+presetButtons.forEach((btn) => {
+  btn.addEventListener('click', () => setRounds(btn.dataset.rounds));
+});
+
 // =================================================================
 // GESTION DES ÉVÉNEMENTS UI — ACCUEIL
 // =================================================================
@@ -212,7 +267,7 @@ btnCreateRoom.addEventListener('click', () => {
   if (!validatePseudo()) return;
   myPseudo = inputPseudo.value.trim();
   disableTemporarily(btnCreateRoom);
-  socket.emit('create-room', { pseudo: myPseudo });
+  socket.emit('create-room', { pseudo: myPseudo, totalRounds: selectedRounds });
 });
 
 btnJoinRoom.addEventListener('click', () => {
@@ -264,9 +319,27 @@ function fallbackCopy(text) {
 btnCopyCode.addEventListener('click', copyRoomCode);
 roomCodeDisplay.addEventListener('click', copyRoomCode);
 
+if (btnLobbyRoundsMinus) {
+  btnLobbyRoundsMinus.addEventListener('click', () => {
+    if (!isHost) return;
+    if (currentTotalRounds > 1) {
+      socket.emit('update-rounds', { totalRounds: currentTotalRounds - 1 });
+    }
+  });
+}
+
+if (btnLobbyRoundsPlus) {
+  btnLobbyRoundsPlus.addEventListener('click', () => {
+    if (!isHost) return;
+    if (currentTotalRounds < 30) {
+      socket.emit('update-rounds', { totalRounds: currentTotalRounds + 1 });
+    }
+  });
+}
+
 btnStartGame.addEventListener('click', () => {
   disableTemporarily(btnStartGame, 3000);
-  socket.emit('start-game');
+  socket.emit('start-game', { totalRounds: currentTotalRounds });
 });
 
 // =================================================================
@@ -362,6 +435,11 @@ socket.on('room-created', (data) => {
   myRoomCode = data.roomCode;
   myToken = data.token;
   isHost = true;
+  if (data.totalRounds) {
+    currentTotalRounds = data.totalRounds;
+    selectedRounds = data.totalRounds;
+  }
+  updateLobbyRoundsDisplay();
   saveSession(myToken, myRoomCode, myPseudo);
   roomCodeDisplay.textContent = myRoomCode;
   btnStartGame.style.display = 'block';
@@ -376,6 +454,7 @@ socket.on('room-joined', (data) => {
   myToken = data.token;
   isHost = false;
   btnStartGame.style.display = 'none';
+  updateLobbyRoundsDisplay();
   saveSession(myToken, myRoomCode, myPseudo);
   roomCodeDisplay.textContent = myRoomCode;
   showScreen('lobby');
@@ -389,6 +468,16 @@ socket.on('session-restored', (data) => {
   isHost = (data.isHost === true || (myToken && data.hostToken && myToken === data.hostToken));
   isCurrentPlayer = data.isCurrentPlayer;
   saveSession(myToken, myRoomCode, myPseudo);
+
+  if (data.currentRound !== undefined && data.currentRound !== null) {
+    currentRoundNumber = data.currentRound;
+  }
+  if (data.totalRounds) {
+    currentTotalRounds = data.totalRounds;
+    selectedRounds = data.totalRounds;
+  }
+  updateRoundDisplays(currentRoundNumber, currentTotalRounds);
+  updateLobbyRoundsDisplay();
 
   roomCodeDisplay.textContent = myRoomCode;
   showToast('Partie retrouvée et restaurée');
@@ -473,11 +562,20 @@ socket.on('restore-session-failed', (data) => {
 
 // --- Mise à jour du lobby ---
 socket.on('lobby-update', (data) => {
-  const { players, hostId, hostToken, roomCode } = data;
+  const { players, hostId, hostToken, roomCode, totalRounds } = data;
 
   if (roomCode) {
     myRoomCode = roomCode;
     roomCodeDisplay.textContent = myRoomCode;
+  }
+
+  if (totalRounds !== undefined && totalRounds !== null) {
+    currentTotalRounds = totalRounds;
+    selectedRounds = totalRounds;
+    if (inputRounds) inputRounds.value = totalRounds;
+    presetButtons.forEach((btn) => {
+      btn.classList.toggle('active', parseInt(btn.dataset.rounds, 10) === totalRounds);
+    });
   }
 
   // Vérification infaillible du statut d'hôte (par token persistant ou par hostId)
@@ -486,6 +584,8 @@ socket.on('lobby-update', (data) => {
   } else if (hostId) {
     isHost = (socket.id === hostId);
   }
+
+  updateLobbyRoundsDisplay();
 
   if (currentScreen === 'home' || currentScreen === 'game-over') {
     showScreen('lobby');
@@ -541,7 +641,11 @@ socket.on('lobby-update', (data) => {
 
 // --- Nouveau tour ---
 socket.on('new-round', (data) => {
-  const { currentPlayerId, currentPlayerPseudo, topics } = data;
+  const { currentPlayerId, currentPlayerPseudo, topics, roundNumber, totalRounds } = data;
+  if (roundNumber !== undefined) currentRoundNumber = roundNumber;
+  if (totalRounds !== undefined) currentTotalRounds = totalRounds;
+  updateRoundDisplays(currentRoundNumber, currentTotalRounds);
+
   isCurrentPlayer = (currentPlayerId === socket.id);
 
   if (isCurrentPlayer) {
@@ -648,8 +752,14 @@ function displayRoundResults(data) {
 
   renderLeaderboard(leaderboard, scores);
 
+  updateRoundDisplays(currentRoundNumber, currentTotalRounds);
   btnNextRound.style.display = isHost ? 'block' : 'none';
   btnNextRound.disabled = false;
+  if (currentRoundNumber >= currentTotalRounds) {
+    btnNextRound.textContent = 'Voir le classement final';
+  } else {
+    btnNextRound.textContent = 'Tour suivant';
+  }
   showScreen('round-results');
 }
 
