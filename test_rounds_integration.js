@@ -212,10 +212,49 @@ server.listen(0, async () => {
       const gameOver2 = await new Promise((r) => host2.on("game-over", r));
       console.log("T2 - Game over received after 3 rounds!");
 
+      console.log("\n=== TEST 3: Rejouer avec les mêmes joueurs & Quitter la salle ===");
+      // Guest emits play-again (testing that any player can trigger replay)
+      guest2.emit("play-again");
+
+      const [restartedMsg, lobbyAfterReplay] = await Promise.all([
+        new Promise((r) => host2.on("room-restarted", r)),
+        new Promise((r) => guest2.on("lobby-update", r)),
+      ]);
+      console.log(`T3 - Room restarted message: ${restartedMsg.restartedBy}`);
+      console.log(`T3 - Players in room after replay: ${lobbyAfterReplay.players.map(p => p.pseudo).join(', ')}`);
+
+      if (lobbyAfterReplay.players.length !== 2) {
+        throw new Error(`Expected 2 players to remain in room, got ${lobbyAfterReplay.players.length}`);
+      }
+      if (lobbyAfterReplay.players.some(p => p.score !== 0)) {
+        throw new Error("Expected all player scores to be reset to 0");
+      }
+
+      // Guest leaves room
+      console.log("T3 - Guest leaving room...");
+      const leavePromise = new Promise((r) => {
+        host2.on("lobby-update", (data) => {
+          if (data.players.length === 1) r(data);
+        });
+      });
+      guest2.emit("leave-room");
+
+      const lobbyAfterLeave = await leavePromise;
+      console.log(`T3 - Players in room after guest left: ${lobbyAfterLeave.players.map(p => p.pseudo).join(', ')}`);
+      if (lobbyAfterLeave.players.length !== 1 || lobbyAfterLeave.players[0].pseudo !== "Alice") {
+        throw new Error("Expected only Alice to remain in room");
+      }
+
+      // Host leaves room
+      console.log("T3 - Host leaving room...");
+      host2.emit("leave-room");
+
+      await new Promise((r) => setTimeout(r, 200));
+
       host2.disconnect();
       guest2.disconnect();
 
-      console.log("\n✅ ALL TESTS (INCLUDING ROTATION RESET) PASSED SUCCESSFULLY!");
+      console.log("\n✅ ALL TESTS (INCLUDING REJOUER & QUITTER) PASSED SUCCESSFULLY!");
     } catch (err) {
       console.error("\n❌ TEST FAILED:", err);
       testPassed = false;

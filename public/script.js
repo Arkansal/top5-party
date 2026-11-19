@@ -100,6 +100,7 @@ const btnCopyCode = $('#btn-copy-code');
 const playerCountText = $('#player-count-text');
 const playerList = $('#player-list');
 const btnStartGame = $('#btn-start-game');
+const btnLeaveLobby = $('#btn-leave-lobby');
 const lobbyRoundsDisplay = $('#lobby-rounds-display');
 const lobbyRoundsControls = $('#lobby-rounds-controls');
 const btnLobbyRoundsMinus = $('#btn-lobby-rounds-minus');
@@ -139,6 +140,7 @@ const correctOrderList = $('#correct-order');
 const playerResults = $('#player-results');
 const leaderboard = $('#leaderboard');
 const btnNextRound = $('#btn-next-round');
+const btnQuitResults = $('#btn-quit-results');
 
 // Fin de partie
 const podium = $('#podium');
@@ -411,19 +413,58 @@ btnSubmitGuess.addEventListener('click', () => {
 // GESTION DES ÉVÉNEMENTS UI — RÉSULTATS / FIN
 // =================================================================
 
+function quitGame(showConfirm = false) {
+  if (showConfirm && currentScreen !== 'home' && currentScreen !== 'lobby' && currentScreen !== 'game-over') {
+    if (!confirm('Veux-tu vraiment quitter la partie en cours ?')) {
+      return;
+    }
+  }
+
+  socket.emit('leave-room');
+  clearSession();
+
+  myPseudo = '';
+  myRoomCode = '';
+  myToken = '';
+  isHost = false;
+  isCurrentPlayer = false;
+
+  if (inputRoomCode) inputRoomCode.value = '';
+  showToast('Tu as quitté la partie');
+  showScreen('home');
+}
+
 btnNextRound.addEventListener('click', () => {
   disableTemporarily(btnNextRound, 3000);
   socket.emit('next-round');
 });
 
+if (btnQuitResults) {
+  btnQuitResults.addEventListener('click', () => quitGame(true));
+}
+
+if (btnLeaveLobby) {
+  btnLeaveLobby.addEventListener('click', () => quitGame(false));
+}
+
 btnPlayAgain.addEventListener('click', () => {
-  disableTemporarily(btnPlayAgain, 3000);
+  disableTemporarily(btnPlayAgain, 2000);
   socket.emit('play-again');
 });
 
 btnQuit.addEventListener('click', () => {
-  clearSession();
-  window.location.reload();
+  quitGame(false);
+});
+
+// Bouton 'X' (fermer) de chaque fenêtre
+$$('.btn-close').forEach((btn) => {
+  btn.setAttribute('title', 'Quitter');
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (currentScreen !== 'home') {
+      quitGame(currentScreen !== 'lobby' && currentScreen !== 'game-over');
+    }
+  });
 });
 
 // =================================================================
@@ -772,14 +813,21 @@ function displayGameOver(scores) {
   const sorted = [...scores].sort((a, b) => b.score - a.score);
   renderPodium(sorted);
   renderLeaderboard(finalLeaderboard, scores);
-  btnPlayAgain.style.display = isHost ? 'inline-block' : 'none';
+  btnPlayAgain.style.display = 'block';
   btnPlayAgain.disabled = false;
+  btnQuit.style.display = 'block';
   showScreen('game-over');
 }
 
 socket.on('game-over', (data) => {
   const scores = (data && data.scores) || data || [];
   displayGameOver(scores);
+});
+
+// --- Salle relancée (Rejouer) ---
+socket.on('room-restarted', (data) => {
+  showToast(`${data.restartedBy || 'Un joueur'} a relancé la partie !`);
+  showScreen('lobby');
 });
 
 // --- Erreur ---

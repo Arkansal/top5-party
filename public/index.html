@@ -106,10 +106,15 @@
         <div class="player-count"><span id="player-count-text">0/10 joueurs</span></div>
         <ul id="player-list" class="player-list"></ul>
 
-        <!-- Bouton lancer (hôte uniquement) -->
-        <button id="btn-start-game" class="btn btn-primary btn-block" style="display:none;" disabled>
-          Lancer la partie
-        </button>
+        <!-- Actions du lobby -->
+        <div class="lobby-actions">
+          <button id="btn-start-game" class="btn btn-primary btn-block" style="display:none;" disabled>
+            Lancer la partie
+          </button>
+          <button id="btn-leave-lobby" class="btn btn-secondary btn-block">
+            Quitter le salon
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -324,8 +329,11 @@
           </table>
         </div>
 
-        <!-- Bouton tour suivant (hôte) -->
-        <button id="btn-next-round" class="btn btn-primary btn-block" style="display:none;">Tour suivant</button>
+        <!-- Actions des résultats -->
+        <div class="results-actions">
+          <button id="btn-next-round" class="btn btn-primary btn-block" style="display:none;">Tour suivant</button>
+          <button id="btn-quit-results" class="btn btn-secondary btn-block">Quitter la partie</button>
+        </div>
       </div>
     </div>
   </section>
@@ -340,7 +348,7 @@
         <div class="window-controls">
           <div class="btn-min"></div>
           <div class="btn-max"></div>
-          <div class="btn-close"></div>
+          <div class="btn-close" title="Quitter"></div>
         </div>
       </div>
       <div class="window-body">
@@ -357,7 +365,7 @@
 
         <!-- Actions -->
         <div class="actions-row">
-          <button id="btn-play-again" class="btn btn-primary" style="display:none;">Rejouer</button>
+          <button id="btn-play-again" class="btn btn-primary">Rejouer</button>
           <button id="btn-quit" class="btn btn-secondary">Quitter</button>
         </div>
       </div>

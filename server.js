@@ -101,9 +101,28 @@ function pickRandomTopics(room, count = 5) {
 }
 
 /**
+ * Vérifie et s'assure qu'un joueur connecté est désigné comme hôte.
+ */
+function ensureActiveHost(room, code) {
+  if (!room || !room.players || room.players.length === 0) return false;
+  const currentHost = room.players.find((p) => p.token === room.hostToken);
+  if (!currentHost || !currentHost.connected) {
+    const nextConnected = room.players.find((p) => p.connected);
+    if (nextConnected && nextConnected.token !== room.hostToken) {
+      room.hostToken = nextConnected.token;
+      room.host = nextConnected.id;
+      console.log(`[Hôte transféré] "${nextConnected.pseudo}" devient l'hôte de la salle ${code}`);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Envoie la mise à jour du lobby à toute la salle.
  */
 function emitLobbyUpdate(code, room) {
+  ensureActiveHost(room, code);
   io.to(code).emit("lobby-update", {
     roomCode: code,
     hostId: room.host,
@@ -739,7 +758,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ── Rejouer ────────────────────────────────────────────────────────────
+  // ── Rejouer (accessible à tous pour relancer avec les mêmes joueurs) ─────
   socket.on("play-again", () => {
     const found = findRoomBySocketId(socket.id);
     if (!found) {
@@ -749,12 +768,8 @@ io.on("connection", (socket) => {
 
     const { code, room } = found;
     const player = room.players.find((p) => p.id === socket.id);
-    const isHost = (room.host === socket.id || (player && player.token === room.hostToken));
 
-    if (!isHost) {
-      socket.emit("error", { message: "Seul l'hôte peut relancer une partie." });
-      return;
-    }
+    ensureActiveHost(room, code);
 
     room.state = "lobby";
     room.currentRound = 0;
@@ -770,8 +785,48 @@ io.on("connection", (socket) => {
     room.lastActivity = Date.now();
     room.players.forEach((p) => (p.score = 0));
 
-    console.log(`[Rejouer] Salle ${code} réinitialisée au lobby`);
+    console.log(
+      `[Rejouer] Salle ${code} réinitialisée au lobby par "${player ? player.pseudo : 'Un joueur'}"`
+    );
 
+    io.to(code).emit("room-restarted", {
+      restartedBy: player ? player.pseudo : "Un joueur",
+      totalRounds: room.totalRounds,
+    });
+
+    emitLobbyUpdate(code, room);
+  });
+
+  // ── Quitter la salle volontairement ─────────────────────────────────────
+  socket.on("leave-room", () => {
+    const found = findRoomBySocketId(socket.id);
+    if (!found) return;
+
+    const { code, room } = found;
+    const playerIndex = room.players.findIndex((p) => p.id === socket.id);
+    if (playerIndex === -1) return;
+
+    const leavingPlayer = room.players[playerIndex];
+    const wasHost = (room.hostToken === leavingPlayer.token || room.host === socket.id);
+
+    // Retirer le joueur de la salle
+    room.players.splice(playerIndex, 1);
+    socket.leave(code);
+    console.log(`[Départ volontaire] "${leavingPlayer.pseudo}" a quitté la salle ${code}`);
+
+    // Si la salle est vide, la supprimer
+    if (room.players.length === 0) {
+      delete rooms[code];
+      console.log(`[Nettoyage] Salle ${code} supprimée car vide`);
+      return;
+    }
+
+    // Si l'hôte est parti, transférer le rôle à un autre joueur
+    if (wasHost && room.players.length > 0) {
+      ensureActiveHost(room, code);
+    }
+
+    room.lastActivity = Date.now();
     emitLobbyUpdate(code, room);
   });
 
@@ -793,7 +848,9 @@ io.on("connection", (socket) => {
       `[Déconnexion temporaire] "${player.pseudo}" a quitté la salle ${code}. Session active pendant 30 min.`
     );
 
-    // L'hôte conserve son rôle via room.hostToken même en cas de rechargement/fermeture temporaire
+    // Si l'hôte s'est déconnecté, s'assurer qu'un joueur connecté peut reprendre le rôle
+    ensureActiveHost(room, code);
+
     emitLobbyUpdate(code, room);
   });
 });
