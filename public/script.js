@@ -1,5 +1,6 @@
 /* =================================================================
    TOP 5 PARTY — Script client Socket.IO
+   Style Rétro Minimaliste (aucun émoji)
    ================================================================= */
 
 // --- Connexion au serveur Socket.IO ---
@@ -104,7 +105,7 @@ function stringToColor(str) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
+  return `hsl(${hue}, 45%, 80%)`;
 }
 
 function getInitials(pseudo) {
@@ -115,12 +116,12 @@ function getInitials(pseudo) {
 function validatePseudo() {
   const value = inputPseudo.value.trim();
   if (!value) {
-    showToast('⚠️ Entre ton pseudo pour jouer !');
+    showToast('Entre ton pseudo pour jouer');
     inputPseudo.focus();
     return false;
   }
   if (value.length > 20) {
-    showToast('⚠️ Pseudo trop long (20 caractères max)');
+    showToast('Pseudo trop long (20 caractères max)');
     return false;
   }
   return true;
@@ -148,7 +149,7 @@ btnJoinRoom.addEventListener('click', () => {
   if (!validatePseudo()) return;
   const code = inputRoomCode.value.trim().toUpperCase();
   if (!code || code.length !== 6) {
-    showToast('⚠️ Le code doit contenir 6 caractères');
+    showToast('Le code doit contenir 6 caractères');
     inputRoomCode.focus();
     return;
   }
@@ -169,7 +170,7 @@ function copyRoomCode() {
   if (!myRoomCode) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(myRoomCode)
-      .then(() => showToast('✅ Code copié ! Partage-le à tes amis'))
+      .then(() => showToast('Code copié dans le presse-papier'))
       .catch(() => fallbackCopy(myRoomCode));
   } else {
     fallbackCopy(myRoomCode);
@@ -183,9 +184,9 @@ function fallbackCopy(text) {
   textArea.select();
   try {
     document.execCommand('copy');
-    showToast('✅ Code copié !');
+    showToast('Code copié dans le presse-papier');
   } catch (err) {
-    showToast('❌ Impossible de copier le code');
+    showToast('Impossible de copier le code');
   }
   document.body.removeChild(textArea);
 }
@@ -208,7 +209,7 @@ formTop5.addEventListener('submit', (e) => {
   for (let i = 1; i <= 5; i++) {
     const val = $(`#top5-${i}`).value.trim();
     if (!val) {
-      showToast(`⚠️ Remplis la position n°${i}`);
+      showToast(`Remplis la position n°${i}`);
       $(`#top5-${i}`).focus();
       return;
     }
@@ -227,12 +228,12 @@ btnSubmitGuess.addEventListener('click', () => {
   const guessedOrder = Array.from(dragItems).map((el) => el.dataset.value);
 
   if (guessedOrder.length !== 5) {
-    showToast('⚠️ Impossible de valider');
+    showToast('Impossible de valider');
     return;
   }
 
   btnSubmitGuess.disabled = true;
-  btnSubmitGuess.textContent = 'Réponse envoyée ! En attente...';
+  btnSubmitGuess.textContent = 'Ordre envoyé (en attente)';
   socket.emit('submit-guess', { guessedOrder });
 });
 
@@ -258,7 +259,6 @@ btnQuit.addEventListener('click', () => {
 // ÉVÉNEMENTS SOCKET.IO — RÉCEPTION
 // =================================================================
 
-// --- Salle créée ---
 socket.on('room-created', (data) => {
   myRoomCode = data.roomCode;
   isHost = true;
@@ -267,14 +267,12 @@ socket.on('room-created', (data) => {
   showScreen('lobby');
 });
 
-// --- Salle rejointe ---
 socket.on('room-joined', (data) => {
   myRoomCode = data.roomCode;
   roomCodeDisplay.textContent = myRoomCode;
   showScreen('lobby');
 });
 
-// --- Mise à jour du lobby ---
 socket.on('lobby-update', (data) => {
   const { players, hostId, roomCode } = data;
 
@@ -285,7 +283,6 @@ socket.on('lobby-update', (data) => {
 
   isHost = (socket.id === hostId);
 
-  // Basculer vers l'écran lobby si nécessaire (ex: retour à l'accueil ou rejouer)
   if (currentScreen === 'home' || currentScreen === 'game-over') {
     showScreen('lobby');
   }
@@ -310,7 +307,7 @@ socket.on('lobby-update', (data) => {
     if (player.id === hostId) {
       const badge = document.createElement('span');
       badge.className = 'player-host-badge';
-      badge.textContent = '👑';
+      badge.textContent = 'HÔTE';
       badge.title = 'Hôte de la partie';
       li.appendChild(badge);
     }
@@ -320,7 +317,6 @@ socket.on('lobby-update', (data) => {
 
   playerCountText.textContent = `${players.length}/10 joueurs`;
 
-  // Bouton lancer
   if (isHost) {
     btnStartGame.style.display = 'block';
     btnStartGame.disabled = players.length < 2;
@@ -378,7 +374,7 @@ socket.on('guess-top5', (data) => {
   renderDragItems(items);
 
   btnSubmitGuess.disabled = false;
-  btnSubmitGuess.textContent = 'Valider';
+  btnSubmitGuess.textContent = "Valider l'ordre";
   showScreen('guess-top5');
 });
 
@@ -421,7 +417,7 @@ socket.on('round-results', (data) => {
     header.className = 'result-header';
     header.innerHTML = `
       <span class="result-player-name">${r.pseudo}</span>
-      <span class="result-score ${roundScore === 6 ? 'perfect' : ''}">+${roundScore} pts ${roundScore === 6 ? '🔥 (Parfait !)' : ''}</span>
+      <span class="result-score ${roundScore === 6 ? 'perfect' : ''}">+${roundScore} pts ${roundScore === 6 ? '(SCORE PARFAIT)' : ''}</span>
     `;
     card.appendChild(header);
 
@@ -433,8 +429,8 @@ socket.on('round-results', (data) => {
       const item = document.createElement('div');
       item.className = `result-item ${isCorrect ? 'correct' : 'wrong'}`;
       item.innerHTML = `
-        <span class="result-icon">${isCorrect ? '✅' : '❌'}</span>
         <span>${idx + 1}. ${guess}</span>
+        <span class="result-status-tag">${isCorrect ? '[CORRECT]' : '[FAUX]'}</span>
       `;
       items.appendChild(item);
     });
@@ -443,7 +439,7 @@ socket.on('round-results', (data) => {
     playerResults.appendChild(card);
   });
 
-  // Leaderboard provisoire
+  // Tableau des scores
   renderLeaderboard(leaderboard, scores);
 
   // Bouton suivant (hôte)
@@ -460,7 +456,7 @@ socket.on('game-over', (data) => {
   renderPodium(sorted);
   renderLeaderboard(finalLeaderboard, scores);
 
-  btnPlayAgain.style.display = isHost ? 'inline-flex' : 'none';
+  btnPlayAgain.style.display = isHost ? 'inline-block' : 'none';
   btnPlayAgain.disabled = false;
   showScreen('game-over');
 });
@@ -468,7 +464,7 @@ socket.on('game-over', (data) => {
 // --- Erreur ---
 socket.on('error', (data) => {
   const msg = typeof data === 'string' ? data : (data && data.message);
-  showToast(`❌ ${msg || 'Une erreur est survenue'}`);
+  showToast(msg || 'Une erreur est survenue');
   btnCreateRoom.disabled = false;
   btnJoinRoom.disabled = false;
   btnStartGame.disabled = false;
@@ -492,10 +488,10 @@ function renderTopicCards(topics) {
     card.addEventListener('click', () => {
       topicCards.querySelectorAll('.topic-card').forEach((c) => {
         c.style.pointerEvents = 'none';
-        c.style.opacity = '0.4';
+        c.style.opacity = '0.5';
       });
       card.style.opacity = '1';
-      card.style.borderColor = 'var(--success)';
+      card.style.backgroundColor = 'var(--accent-pink)';
       socket.emit('select-topic', { topicId: id, topic: label });
     });
     topicCards.appendChild(card);
@@ -512,7 +508,7 @@ function renderDragItems(items) {
     el.innerHTML = `
       <span class="drag-rank">${idx + 1}</span>
       <span class="drag-label">${item}</span>
-      <span class="drag-handle">⠿</span>
+      <span class="drag-handle">:::</span>
     `;
     guessContainer.appendChild(el);
   });
@@ -532,15 +528,10 @@ function renderLeaderboard(tableEl, scores) {
   tbody.innerHTML = '';
   sorted.forEach((entry, idx) => {
     const tr = document.createElement('tr');
-    let rank = `${idx + 1}`;
-    if (idx === 0) rank = '🥇';
-    else if (idx === 1) rank = '🥈';
-    else if (idx === 2) rank = '🥉';
-
     tr.innerHTML = `
-      <td>${rank}</td>
+      <td><strong>${idx + 1}</strong></td>
       <td>${entry.pseudo}</td>
-      <td><strong>${entry.score} pts</strong></td>
+      <td><strong>${entry.score} PTS</strong></td>
     `;
     tbody.appendChild(tr);
   });
@@ -561,7 +552,7 @@ function renderPodium(sorted) {
     place.className = `podium-place ${cssClass}`;
     place.innerHTML = `
       <div class="podium-name">${player.pseudo}</div>
-      <div class="podium-score">${player.score} pts</div>
+      <div class="podium-score">${player.score} PTS</div>
       <div class="podium-bar">${label}</div>
     `;
     podium.appendChild(place);
@@ -578,7 +569,6 @@ function initDragAndDrop() {
   const items = guessContainer.querySelectorAll('.drag-item');
 
   items.forEach((item) => {
-    // Souris
     item.addEventListener('dragstart', handleDragStart);
     item.addEventListener('dragend', handleDragEnd);
     item.addEventListener('dragover', handleDragOver);
@@ -586,7 +576,6 @@ function initDragAndDrop() {
     item.addEventListener('dragleave', handleDragLeave);
     item.addEventListener('drop', handleDrop);
 
-    // Tactile (mobile)
     item.addEventListener('touchstart', handleTouchStart, { passive: false });
     item.addEventListener('touchmove', handleTouchMove, { passive: false });
     item.addEventListener('touchend', handleTouchEnd);
@@ -640,7 +629,6 @@ function handleDrop(e) {
   updateDragRanks();
 }
 
-// Support mobile tactile
 let touchClone = null;
 
 function handleTouchStart(e) {
@@ -651,7 +639,7 @@ function handleTouchStart(e) {
   touchClone.style.position = 'fixed';
   touchClone.style.zIndex = '1000';
   touchClone.style.pointerEvents = 'none';
-  touchClone.style.opacity = '0.85';
+  touchClone.style.opacity = '0.9';
   touchClone.style.width = `${this.offsetWidth}px`;
   touchClone.style.left = `${this.getBoundingClientRect().left}px`;
   touchClone.style.top = `${touch.clientY - this.offsetHeight / 2}px`;

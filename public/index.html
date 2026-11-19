@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎮 Top 5 Party</title>
-  <!-- Police Inter depuis Google Fonts -->
+  <title>Top 5 Party</title>
+  <!-- Police Pixelify Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <!-- Feuille de styles -->
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -17,28 +17,38 @@
   <!-- ÉCRAN : ACCUEIL                                                -->
   <!-- ============================================================= -->
   <section id="screen-home" class="screen active">
-    <div class="container">
-      <h1 class="title">🎮 Top 5 Party</h1>
-      <p class="subtitle">Devine le classement de tes amis !</p>
-
-      <!-- Saisie du pseudo -->
-      <div class="form-group">
-        <label for="input-pseudo">Ton pseudo</label>
-        <input type="text" id="input-pseudo" placeholder="Entre ton pseudo..." maxlength="20" autocomplete="off" />
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">top5_party.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
       </div>
+      <div class="window-body">
+        <h1 class="main-title">TOP 5 PARTY</h1>
+        <p class="subtitle">Devine le classement de tes amis</p>
 
-      <!-- Créer une room -->
-      <button id="btn-create-room" class="btn btn-primary btn-block">Créer une room</button>
+        <!-- Saisie du pseudo -->
+        <div class="form-group">
+          <label for="input-pseudo">PSEUDO</label>
+          <input type="text" id="input-pseudo" placeholder="Entre ton pseudo..." maxlength="20" autocomplete="off" />
+        </div>
 
-      <!-- Séparateur -->
-      <div class="divider"><span>ou</span></div>
+        <!-- Créer une room -->
+        <button id="btn-create-room" class="btn btn-primary btn-block">Créer une room</button>
 
-      <!-- Rejoindre une room -->
-      <div class="form-group">
-        <label for="input-room-code">Code de la room</label>
-        <input type="text" id="input-room-code" placeholder="Ex : ABCDEF" maxlength="6" autocomplete="off" />
+        <!-- Séparateur -->
+        <div class="divider"><span>ou</span></div>
+
+        <!-- Rejoindre une room -->
+        <div class="form-group">
+          <label for="input-room-code">CODE DE LA ROOM</label>
+          <input type="text" id="input-room-code" placeholder="EX : ABCDEF" maxlength="6" autocomplete="off" />
+        </div>
+        <button id="btn-join-room" class="btn btn-secondary btn-block">Rejoindre</button>
       </div>
-      <button id="btn-join-room" class="btn btn-secondary btn-block">Rejoindre</button>
     </div>
   </section>
 
@@ -46,24 +56,34 @@
   <!-- ÉCRAN : LOBBY (salon d'attente)                                -->
   <!-- ============================================================= -->
   <section id="screen-lobby" class="screen">
-    <div class="container">
-      <h2 class="screen-title">Salon d'attente</h2>
-
-      <!-- Code de la room -->
-      <div class="room-code-wrapper">
-        <span class="room-code-label">Code de la room</span>
-        <div id="room-code-display" class="room-code" title="Cliquer pour copier">------</div>
-        <button id="btn-copy-code" class="btn btn-small btn-outline">📋 Copier</button>
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">lobby.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
       </div>
+      <div class="window-body">
+        <h2 class="screen-title">Salon d'attente</h2>
 
-      <!-- Liste des joueurs -->
-      <div class="player-count"><span id="player-count-text">0/10 joueurs</span></div>
-      <ul id="player-list" class="player-list"></ul>
+        <!-- Code de la room -->
+        <div class="room-code-wrapper">
+          <span class="room-code-label">CODE DU SALON</span>
+          <div id="room-code-display" class="room-code" title="Cliquer pour copier">------</div>
+          <button id="btn-copy-code" class="btn btn-small btn-secondary">Copier</button>
+        </div>
 
-      <!-- Bouton lancer (hôte uniquement) -->
-      <button id="btn-start-game" class="btn btn-primary btn-block" style="display:none;" disabled>
-        Lancer la partie
-      </button>
+        <!-- Liste des joueurs -->
+        <div class="player-count"><span id="player-count-text">0/10 joueurs</span></div>
+        <ul id="player-list" class="player-list"></ul>
+
+        <!-- Bouton lancer (hôte uniquement) -->
+        <button id="btn-start-game" class="btn btn-primary btn-block" style="display:none;" disabled>
+          Lancer la partie
+        </button>
+      </div>
     </div>
   </section>
 
@@ -71,10 +91,20 @@
   <!-- ÉCRAN : CHOIX DU SUJET (joueur courant)                       -->
   <!-- ============================================================= -->
   <section id="screen-choosing-topic" class="screen">
-    <div class="container">
-      <h2 class="screen-title">C'est ton tour !</h2>
-      <p class="screen-subtitle">Choisis un sujet :</p>
-      <div id="topic-cards" class="topic-grid"></div>
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">choix_sujet.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <h2 class="screen-title">C'est ton tour</h2>
+        <p class="screen-subtitle">Choisis un sujet de Top 5 :</p>
+        <div id="topic-cards" class="topic-grid"></div>
+      </div>
     </div>
   </section>
 
@@ -82,10 +112,20 @@
   <!-- ÉCRAN : ATTENTE DU CHOIX DU SUJET (autres joueurs)            -->
   <!-- ============================================================= -->
   <section id="screen-waiting-topic" class="screen">
-    <div class="container center-content">
-      <div class="waiting-box">
-        <p class="waiting-text"><span id="waiting-topic-pseudo">???</span> est en train de choisir un sujet...</p>
-        <div class="waiting-dots"><span></span><span></span><span></span></div>
+    <div class="window-card center-content">
+      <div class="window-header">
+        <span class="window-title">en_attente.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <div class="waiting-box">
+          <div class="rec-dot"></div>
+          <p class="waiting-text"><span id="waiting-topic-pseudo">???</span> choisit un sujet...</p>
+        </div>
       </div>
     </div>
   </section>
@@ -94,32 +134,42 @@
   <!-- ÉCRAN : REMPLIR SON TOP 5 (joueur courant)                    -->
   <!-- ============================================================= -->
   <section id="screen-fill-top5" class="screen">
-    <div class="container">
-      <h2 class="screen-title">Ton Top 5</h2>
-      <div id="fill-topic-display" class="topic-badge">Sujet</div>
-      <form id="form-top5" class="top5-form">
-        <div class="form-group top5-input-group">
-          <label>🥇 1er</label>
-          <input type="text" id="top5-1" placeholder="Ton choix n°1" maxlength="60" required autocomplete="off" />
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">saisie_top5.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
         </div>
-        <div class="form-group top5-input-group">
-          <label>🥈 2e</label>
-          <input type="text" id="top5-2" placeholder="Ton choix n°2" maxlength="60" required autocomplete="off" />
-        </div>
-        <div class="form-group top5-input-group">
-          <label>🥉 3e</label>
-          <input type="text" id="top5-3" placeholder="Ton choix n°3" maxlength="60" required autocomplete="off" />
-        </div>
-        <div class="form-group top5-input-group">
-          <label>4e</label>
-          <input type="text" id="top5-4" placeholder="Ton choix n°4" maxlength="60" required autocomplete="off" />
-        </div>
-        <div class="form-group top5-input-group">
-          <label>5e</label>
-          <input type="text" id="top5-5" placeholder="Ton choix n°5" maxlength="60" required autocomplete="off" />
-        </div>
-        <button type="submit" id="btn-submit-top5" class="btn btn-primary btn-block">Valider mon Top 5</button>
-      </form>
+      </div>
+      <div class="window-body">
+        <h2 class="screen-title">Ton Top 5</h2>
+        <div id="fill-topic-display" class="topic-badge">Sujet</div>
+        <form id="form-top5" class="top5-form">
+          <div class="form-group top5-input-group">
+            <label>1.</label>
+            <input type="text" id="top5-1" placeholder="Choix numéro 1" maxlength="60" required autocomplete="off" />
+          </div>
+          <div class="form-group top5-input-group">
+            <label>2.</label>
+            <input type="text" id="top5-2" placeholder="Choix numéro 2" maxlength="60" required autocomplete="off" />
+          </div>
+          <div class="form-group top5-input-group">
+            <label>3.</label>
+            <input type="text" id="top5-3" placeholder="Choix numéro 3" maxlength="60" required autocomplete="off" />
+          </div>
+          <div class="form-group top5-input-group">
+            <label>4.</label>
+            <input type="text" id="top5-4" placeholder="Choix numéro 4" maxlength="60" required autocomplete="off" />
+          </div>
+          <div class="form-group top5-input-group">
+            <label>5.</label>
+            <input type="text" id="top5-5" placeholder="Choix numéro 5" maxlength="60" required autocomplete="off" />
+          </div>
+          <button type="submit" id="btn-submit-top5" class="btn btn-primary btn-block">Valider mon Top 5</button>
+        </form>
+      </div>
     </div>
   </section>
 
@@ -127,11 +177,21 @@
   <!-- ÉCRAN : ATTENTE DU TOP 5 (autres joueurs)                     -->
   <!-- ============================================================= -->
   <section id="screen-waiting-top5" class="screen">
-    <div class="container center-content">
-      <div class="waiting-box">
-        <div id="waiting-top5-topic" class="topic-badge">Sujet</div>
-        <p class="waiting-text"><span id="waiting-top5-pseudo">???</span> prépare son Top 5...</p>
-        <div class="waiting-dots"><span></span><span></span><span></span></div>
+    <div class="window-card center-content">
+      <div class="window-header">
+        <span class="window-title">en_attente.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <div class="waiting-box">
+          <div id="waiting-top5-topic" class="topic-badge">Sujet</div>
+          <div class="rec-dot"></div>
+          <p class="waiting-text"><span id="waiting-top5-pseudo">???</span> prépare son Top 5...</p>
+        </div>
       </div>
     </div>
   </section>
@@ -140,13 +200,23 @@
   <!-- ÉCRAN : DEVINER LE TOP 5 (joueurs devinants)                  -->
   <!-- ============================================================= -->
   <section id="screen-guess-top5" class="screen">
-    <div class="container">
-      <h2 class="screen-title">Remets le Top 5 dans l'ordre !</h2>
-      <p class="screen-subtitle">Top 5 de <span id="guess-pseudo">???</span></p>
-      <div id="guess-topic-display" class="topic-badge">Sujet</div>
-      <p class="hint-text">Glisse les éléments pour les réordonner du 1er au 5e</p>
-      <div id="guess-container" class="drag-container"></div>
-      <button id="btn-submit-guess" class="btn btn-primary btn-block">Valider</button>
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">devinette.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <h2 class="screen-title">Remets dans l'ordre</h2>
+        <p class="screen-subtitle">Top 5 de <span id="guess-pseudo">???</span></p>
+        <div id="guess-topic-display" class="topic-badge">Sujet</div>
+        <p class="hint-text">Glisse les blocs pour réordonner du 1er au 5e</p>
+        <div id="guess-container" class="drag-container"></div>
+        <button id="btn-submit-guess" class="btn btn-primary btn-block">Valider l'ordre</button>
+      </div>
     </div>
   </section>
 
@@ -154,11 +224,23 @@
   <!-- ÉCRAN : ATTENTE DES DEVINETTES (joueur courant)               -->
   <!-- ============================================================= -->
   <section id="screen-waiting-guesses" class="screen">
-    <div class="container center-content">
-      <div class="waiting-box">
-        <p class="waiting-text">Les autres joueurs tentent de deviner ton classement...</p>
-        <p class="guess-counter"><span id="guesses-count">0</span>/<span id="guesses-total">0</span> ont répondu</p>
-        <div class="waiting-dots"><span></span><span></span><span></span></div>
+    <div class="window-card center-content">
+      <div class="window-header">
+        <span class="window-title">attente_reponses.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <div class="waiting-box">
+          <p class="waiting-text">Les autres joueurs devinent ton classement...</p>
+          <div class="progress-indicator">
+            <span id="guesses-count">0</span> / <span id="guesses-total">0</span> réponses reçues
+          </div>
+          <div class="rec-dot"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -167,33 +249,43 @@
   <!-- ÉCRAN : RÉSULTATS DE LA MANCHE                                -->
   <!-- ============================================================= -->
   <section id="screen-round-results" class="screen">
-    <div class="container">
-      <h2 class="screen-title">Résultats de la manche</h2>
-      <div id="results-topic" class="topic-badge">Sujet</div>
-
-      <!-- Ordre correct -->
-      <div class="results-section">
-        <h3>✅ Ordre correct</h3>
-        <ol id="correct-order" class="correct-order-list"></ol>
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">resultats.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
       </div>
+      <div class="window-body">
+        <h2 class="screen-title">Résultats du tour</h2>
+        <div id="results-topic" class="topic-badge">Sujet</div>
 
-      <!-- Résultats par joueur -->
-      <div class="results-section">
-        <h3>📊 Résultats des joueurs</h3>
-        <div id="player-results" class="player-results"></div>
+        <!-- Ordre correct -->
+        <div class="results-section">
+          <h3>Ordre exact</h3>
+          <ol id="correct-order" class="correct-order-list"></ol>
+        </div>
+
+        <!-- Résultats par joueur -->
+        <div class="results-section">
+          <h3>Pronostics des joueurs</h3>
+          <div id="player-results" class="player-results"></div>
+        </div>
+
+        <!-- Classement actuel -->
+        <div class="results-section">
+          <h3>Scores actuels</h3>
+          <table id="leaderboard" class="leaderboard-table">
+            <thead><tr><th>RANG</th><th>JOUEUR</th><th>SCORE</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <!-- Bouton tour suivant (hôte) -->
+        <button id="btn-next-round" class="btn btn-primary btn-block" style="display:none;">Tour suivant</button>
       </div>
-
-      <!-- Classement actuel -->
-      <div class="results-section">
-        <h3>🏅 Classement actuel</h3>
-        <table id="leaderboard" class="leaderboard-table">
-          <thead><tr><th>#</th><th>Joueur</th><th>Score</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <!-- Bouton tour suivant (hôte) -->
-      <button id="btn-next-round" class="btn btn-primary btn-block" style="display:none;">Tour suivant</button>
     </div>
   </section>
 
@@ -201,22 +293,32 @@
   <!-- ÉCRAN : FIN DE PARTIE                                         -->
   <!-- ============================================================= -->
   <section id="screen-game-over" class="screen">
-    <div class="container">
-      <h2 class="screen-title">🏆 Classement final</h2>
+    <div class="window-card">
+      <div class="window-header">
+        <span class="window-title">classement_final.exe</span>
+        <div class="window-controls">
+          <div class="btn-min"></div>
+          <div class="btn-max"></div>
+          <div class="btn-close"></div>
+        </div>
+      </div>
+      <div class="window-body">
+        <h2 class="screen-title">Fin de partie</h2>
 
-      <!-- Podium -->
-      <div id="podium" class="podium"></div>
+        <!-- Podium -->
+        <div id="podium" class="podium"></div>
 
-      <!-- Classement complet -->
-      <table id="final-leaderboard" class="leaderboard-table">
-        <thead><tr><th>#</th><th>Joueur</th><th>Score</th></tr></thead>
-        <tbody></tbody>
-      </table>
+        <!-- Classement complet -->
+        <table id="final-leaderboard" class="leaderboard-table">
+          <thead><tr><th>RANG</th><th>JOUEUR</th><th>SCORE</th></tr></thead>
+          <tbody></tbody>
+        </table>
 
-      <!-- Actions -->
-      <div class="actions-row">
-        <button id="btn-play-again" class="btn btn-primary" style="display:none;">Rejouer</button>
-        <button id="btn-quit" class="btn btn-outline">Quitter</button>
+        <!-- Actions -->
+        <div class="actions-row">
+          <button id="btn-play-again" class="btn btn-primary" style="display:none;">Rejouer</button>
+          <button id="btn-quit" class="btn btn-secondary">Quitter</button>
+        </div>
       </div>
     </div>
   </section>
