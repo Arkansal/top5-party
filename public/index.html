@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <!-- Feuille de styles -->
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/style.css?v=3" />
 </head>
 <body>
 
@@ -45,6 +45,7 @@
             <button type="button" id="btn-rounds-plus" class="btn-stepper" aria-label="Plus de tours">+</button>
           </div>
           <div class="rounds-presets">
+            <button type="button" class="btn-preset" data-rounds="1">1 tour</button>
             <button type="button" class="btn-preset" data-rounds="3">3 tours</button>
             <button type="button" class="btn-preset active" data-rounds="5">5 tours</button>
             <button type="button" class="btn-preset" data-rounds="10">10 tours</button>
@@ -92,13 +93,22 @@
 
         <!-- Configuration du nombre de tours dans le lobby -->
         <div class="lobby-rounds-card">
-          <div class="lobby-rounds-info">
-            <span class="rounds-card-label">NOMBRE DE TOURS</span>
+          <div class="lobby-rounds-header">
+            <span class="rounds-card-label">DURÉE DE LA PARTIE</span>
             <span id="lobby-rounds-display" class="rounds-card-value">5 tours</span>
           </div>
           <div id="lobby-rounds-controls" class="lobby-rounds-controls" style="display:none;">
-            <button type="button" id="btn-lobby-rounds-minus" class="btn-stepper" title="Moins de tours">-</button>
-            <button type="button" id="btn-lobby-rounds-plus" class="btn-stepper" title="Plus de tours">+</button>
+            <div class="lobby-rounds-stepper">
+              <button type="button" id="btn-lobby-rounds-minus" class="btn-stepper btn-small" title="Moins de tours">-</button>
+              <span id="lobby-rounds-count" class="lobby-rounds-count">5 tours</span>
+              <button type="button" id="btn-lobby-rounds-plus" class="btn-stepper btn-small" title="Plus de tours">+</button>
+            </div>
+            <div class="rounds-presets lobby-presets">
+              <button type="button" class="btn-preset btn-lobby-preset" data-rounds="1">1 tour</button>
+              <button type="button" class="btn-preset btn-lobby-preset" data-rounds="3">3 tours</button>
+              <button type="button" class="btn-preset btn-lobby-preset active" data-rounds="5">5 tours</button>
+              <button type="button" class="btn-preset btn-lobby-preset" data-rounds="10">10 tours</button>
+            </div>
           </div>
         </div>
 
@@ -109,8 +119,9 @@
         <!-- Actions du lobby -->
         <div class="lobby-actions">
           <button id="btn-start-game" class="btn btn-primary btn-block" style="display:none;" disabled>
-            Lancer la partie
+            Lancer la partie (5 tours)
           </button>
+          <div id="lobby-rounds-hint" class="lobby-rounds-hint">Partie en 5 tours</div>
           <button id="btn-leave-lobby" class="btn btn-secondary btn-block">
             Quitter le salon
           </button>
@@ -380,6 +391,6 @@
   <!-- Socket.IO client -->
   <script src="/socket.io/socket.io.js"></script>
   <!-- Script principal du jeu -->
-  <script src="/script.js"></script>
+  <script src="/script.js?v=3"></script>
 </body>
 </html>

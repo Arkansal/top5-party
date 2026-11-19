@@ -103,6 +103,8 @@ const btnStartGame = $('#btn-start-game');
 const btnLeaveLobby = $('#btn-leave-lobby');
 const lobbyRoundsDisplay = $('#lobby-rounds-display');
 const lobbyRoundsControls = $('#lobby-rounds-controls');
+const lobbyRoundsCount = $('#lobby-rounds-count');
+const lobbyRoundsHint = $('#lobby-rounds-hint');
 const btnLobbyRoundsMinus = $('#btn-lobby-rounds-minus');
 const btnLobbyRoundsPlus = $('#btn-lobby-rounds-plus');
 
@@ -237,13 +239,43 @@ function updateRoundDisplays(current, total) {
   });
 }
 
+function updateStartGameButton(playerCount = null) {
+  if (!isHost) {
+    btnStartGame.style.display = 'none';
+    return;
+  }
+  btnStartGame.style.display = 'block';
+  const count = playerCount !== null ? playerCount : ($$('#player-list li').length || 1);
+  const canStart = count >= 2;
+  btnStartGame.disabled = !canStart;
+  const roundLabel = `${currentTotalRounds} tour${currentTotalRounds > 1 ? 's' : ''}`;
+  if (!canStart) {
+    btnStartGame.title = 'Minimum 2 joueurs requis pour lancer';
+    btnStartGame.textContent = `En attente de joueurs (min 2)... [${roundLabel}]`;
+  } else {
+    btnStartGame.title = `Lancer la partie (${roundLabel})`;
+    btnStartGame.textContent = `Lancer la partie (${roundLabel})`;
+  }
+}
+
 function updateLobbyRoundsDisplay() {
+  const roundLabel = `${currentTotalRounds} tour${currentTotalRounds > 1 ? 's' : ''}`;
   if (lobbyRoundsDisplay) {
-    lobbyRoundsDisplay.textContent = `${currentTotalRounds} tour${currentTotalRounds > 1 ? 's' : ''}`;
+    lobbyRoundsDisplay.textContent = roundLabel;
+  }
+  if (lobbyRoundsCount) {
+    lobbyRoundsCount.textContent = roundLabel;
+  }
+  if (lobbyRoundsHint) {
+    lobbyRoundsHint.textContent = `Partie en ${roundLabel}`;
   }
   if (lobbyRoundsControls) {
     lobbyRoundsControls.style.display = isHost ? 'flex' : 'none';
   }
+  $$('.btn-lobby-preset').forEach((btn) => {
+    btn.classList.toggle('active', parseInt(btn.dataset.rounds, 10) === currentTotalRounds);
+  });
+  updateStartGameButton();
 }
 
 // Initialisation des boutons de sélection de tours
@@ -338,6 +370,16 @@ if (btnLobbyRoundsPlus) {
     }
   });
 }
+
+$$('.btn-lobby-preset').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!isHost) return;
+    const rounds = parseInt(btn.dataset.rounds, 10);
+    if (!isNaN(rounds) && rounds >= 1 && rounds <= 30) {
+      socket.emit('update-rounds', { totalRounds: rounds });
+    }
+  });
+});
 
 btnStartGame.addEventListener('click', () => {
   disableTemporarily(btnStartGame, 3000);
@@ -664,20 +706,7 @@ socket.on('lobby-update', (data) => {
 
   playerCountText.textContent = `${players.length}/10 joueurs`;
 
-  if (isHost) {
-    btnStartGame.style.display = 'block';
-    const canStart = players.length >= 2;
-    btnStartGame.disabled = !canStart;
-    if (!canStart) {
-      btnStartGame.title = 'Minimum 2 joueurs requis pour lancer';
-      btnStartGame.textContent = 'En attente de joueurs (min 2)...';
-    } else {
-      btnStartGame.title = 'Lancer la partie';
-      btnStartGame.textContent = 'Lancer la partie';
-    }
-  } else {
-    btnStartGame.style.display = 'none';
-  }
+  updateStartGameButton(players.length);
 });
 
 // --- Nouveau tour ---

@@ -472,42 +472,59 @@ input[type="text"]:focus {
   background-color: var(--card-white);
   border: var(--border-width) solid var(--border-color);
   box-shadow: 2px 2px 0px var(--border-color);
-  padding: 12px 14px;
+  padding: 14px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-.lobby-rounds-info {
+.lobby-rounds-header {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.rounds-card-label {
-  font-size: 12px;
-  font-weight: 700;
-  opacity: 0.8;
-  letter-spacing: 0.5px;
-}
-
-.rounds-card-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-dark);
+  align-items: center;
+  justify-content: space-between;
 }
 
 .lobby-rounds-controls {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.lobby-rounds-stepper {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 12px;
+}
+
+.lobby-rounds-count {
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 80px;
+  text-align: center;
 }
 
 .lobby-rounds-controls .btn-stepper {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   font-size: 18px;
+}
+
+.lobby-presets {
+  margin-top: 2px;
+}
+
+.lobby-rounds-hint {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  text-transform: uppercase;
 }
 
 .room-code-label {
