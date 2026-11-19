@@ -1,0 +1,14 @@
+{
+  "name": "top5-party",
+  "version": "1.0.0",
+  "description": "Top 5 Party - Jeu multijoueur en ligne",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}
